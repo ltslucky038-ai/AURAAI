@@ -1,7 +1,8 @@
-
 const WEATHER_API_ENDPOINT = 'http://localhost:3000/api/chat'; 
 // ⭐ NOTE: REPLACE 'YOUR_GEOCODING_API_KEY' with your actual API key!
-const GEOCODING_API_KEY = '9a571351ccb74e2aa233f574e9801767';
+// यह Key OpenCage Data से है और इसे client-side पर इस्तेमाल किया जा सकता है।
+const GEOCODING_API_KEY = '9a571351ccb74e2aa233f574e9801767'; // ⚠️ अपनी Key यहाँ डालें
+
 // 💾 Global State & Memory
 let currentUnit = 'celsius'; 
 let currentWeatherData = null; 
@@ -344,7 +345,7 @@ const getCoordinatesForCity = async (city) => {
         if (geoData.results && geoData.results.length > 0) {
             const coords = { 
                 lat: geoData.results[0].geometry.lat, 
-                lon: geoDataData.results[0].geometry.lng 
+                lon: geoData.results[0].geometry.lng // ✅ FIXED: Changed geoDataData to geoData
             };
             cityCoordinatesCache[city] = coords; 
             return coords;
@@ -403,6 +404,7 @@ const parseWeatherReport = (text) => {
         
         const aqiFull = getMatch('Air Quality');
         if (aqiFull !== 'N/A') {
+            // Extracts number inside parentheses or first number found
             data.details.aqiIndex = aqiFull.match(/\((\d+)\)/)?.[1] || aqiFull.match(/(\d+)/)?.[1] || 'N/A';
         }
     }
@@ -412,6 +414,7 @@ const parseWeatherReport = (text) => {
     }
     
     // --- Mock Forecast Data (Crucial for UI) ---
+    // Since Gemini only provides current weather, we mock the forecast for display purposes
     if (data.temp.current !== 'N/A' && !isNaN(parseFloat(data.temp.current))) {
         const baseTemp = parseFloat(data.temp.current);
         const desc = data.description !== 'N/A' ? data.description : 'clear sky';
@@ -494,6 +497,7 @@ const handleSearchSubmit = async () => {
     searchCityInput.disabled = true;
     showMessage(`Fetching weather for ${cityQuery}... ⏳`, false);
 
+    // Get coordinates first
     const { lat, lon } = await getCoordinatesForCity(cityQuery);
 
     try {
@@ -565,7 +569,7 @@ if (hourlyTabButton && hourlyForecastSection) {
         smoothScrollTo(hourlyForecastSection); 
     });
 }
-//  SCROLLING LOGIC FOR DAILY/WEEKLY
+//  SCROLLING LOGIC FOR DAILY/WEEKLY
 if (dailyTabButton && weeklyForecastSection) {
     dailyTabButton.addEventListener('click', () => {
         smoothScrollTo(weeklyForecastSection);
