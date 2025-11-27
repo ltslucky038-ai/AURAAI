@@ -1,4 +1,4 @@
-const WEATHER_API_ENDPOINT = 'http://localhost:3000/api/chat'; 
+const WEATHER_API_ENDPOINT = 'https://auraai-12.onrender.com/api/chat'; 
 // ⭐ NOTE: REPLACE 'YOUR_GEOCODING_API_KEY' with your actual API key!
 // यह Key OpenCage Data से है और इसे client-side पर इस्तेमाल किया जा सकता है।
 const GEOCODING_API_KEY = '9a571351ccb74e2aa233f574e9801767'; // ⚠️ अपनी Key यहाँ डालें
