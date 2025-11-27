@@ -1,8 +1,7 @@
 
-const WEATHER_API_ENDPOINT = 'https://auraai-12.onrender.com/api/chat'; 
+const WEATHER_API_ENDPOINT = 'http://localhost:3000/api/chat'; 
 // ⭐ NOTE: REPLACE 'YOUR_GEOCODING_API_KEY' with your actual API key!
-const GEOCODING_API_KEY = '9a571351ccb74e2aa233f574e9801767'; // ⚠️ अपनी Key यहाँ डालें
-
+const GEOCODING_API_KEY = '9a571351ccb74e2aa233f574e9801767';
 // 💾 Global State & Memory
 let currentUnit = 'celsius'; 
 let currentWeatherData = null; 
@@ -321,7 +320,7 @@ const renderAqiChart = (currentAqiIndex) => {
 
 
 // ======================================================================
-// === 4. DATA FETCHING AND PARSING LOGIC (FIXED) ===
+// === 4. DATA FETCHING AND PARSING LOGIC ===
 // ======================================================================
 
 const getCoordinatesForCity = async (city) => {
@@ -345,7 +344,7 @@ const getCoordinatesForCity = async (city) => {
         if (geoData.results && geoData.results.length > 0) {
             const coords = { 
                 lat: geoData.results[0].geometry.lat, 
-                lon: geoData.results[0].geometry.lng
+                lon: geoDataData.results[0].geometry.lng 
             };
             cityCoordinatesCache[city] = coords; 
             return coords;
@@ -357,13 +356,11 @@ const getCoordinatesForCity = async (city) => {
     return defaultCoords;
 };
 
-// ⭐ PARSER में मुख्य सुधार यहाँ किए गए हैं ⭐
 const parseWeatherReport = (text) => {
-    const normalizedText = (text || '').trim();
-    
-    if (!normalizedText.includes('Details:') && 
-        !normalizedText.match(/\d+(?:°C|°F|\s*C|\s*F)/i)) {
-        console.warn("Parser: Text does not contain required weather structure or temperature.");
+    // This is a robust mock parser to handle the chatbot's text-based output
+    const normalizedText = (text || '').toLowerCase(); 
+    if (!normalizedText.includes('current weather') && 
+        !normalizedText.includes('details:')) {
         return null; 
     }
     
@@ -375,72 +372,46 @@ const parseWeatherReport = (text) => {
         forecasts: { hourly: [], daily: [] }
     };
     
-    // 1. City, Temperature, and Description Extraction (Made more flexible)
+    // 1. Summary (City, Current Temp, Description)
+    const summaryMatch = text.match(/Current weather in\s*(.+?)\s*is\s*(\d+)(?:°C|°F|\s*C|\s*F)\s*and\s*([^.]+)/i);
+    const tempUnitMatch = text.match(/(\d+)(°C|°F|\s*C|\s*F)/i);
     
-    // a. Extract City (Look for "Current weather in [CITY]")
-    const cityMatch = normalizedText.match(/weather in\s*(.+?)\s*(?:is|hai|mein)/i);
-    if (cityMatch && cityMatch[1]) {
-        // Clean up common endings like 'India' and ensure it stops before a short word like 'is'
-        let city = cityMatch[1].trim().replace(/, India|,\s*is|\s*is|\.$/gi, '').trim();
-        // Remove text after the word 'is' or 'hai' if mistakenly included
-        city = city.split(' is ')[0].split(' hai ')[0].trim();
-        data.city = city.charAt(0).toUpperCase() + city.slice(1);
-    }
-    
-    // b. Extract Temperature (Look for any number followed by degree or C/F)
-    const tempMatch = normalizedText.match(/(\d+)(?:°C|°F|\s*C|\s*F)/i);
-    if (tempMatch) {
-        data.temp.current = tempMatch[1];
-    }
-    
-    // c. Extract Description (Look for text between temperature unit and 'Details:')
-    const descriptionMatch = normalizedText.match(/(?:°C|°F|\s*C|\s*F)\s*and\s*([^.]+)\. Details:/i) ||
-                             normalizedText.match(/(?:°C|°F|\s*C|\s*F)\s*aur\s*([^.]+)\.\s*Details:/i); // Hindi support
-                             
-    if (descriptionMatch) {
-        data.description = descriptionMatch[1].trim();
-    } else {
-        // Fallback: If no match found, try to find description from summary sentence
-        const summaryEndMatch = normalizedText.match(/and\s*([^.]+)/i);
-        if (summaryEndMatch) {
-             data.description = summaryEndMatch[1].trim().split('. Details:')[0].trim().replace(/[.,]$/g, '');
-        }
+    if (summaryMatch) {
+        data.city = summaryMatch[1].trim();
+        data.temp.current = summaryMatch[2].trim();
+        data.description = summaryMatch[3].trim().replace(/[.,]$/g, ''); 
+    } else if (tempUnitMatch) {
+        data.temp.current = tempUnitMatch[1];
     }
 
-
-    // 2. Details Block Extraction (Six Required Fields)
-    const detailsBlockMatch = normalizedText.match(/Details\s*:\s*(.+)/i);
+    // 2. Details Block
+    const detailsBlockMatch = text.match(/Details\s*:\s*(.+)/i);
     if (detailsBlockMatch) {
         const detailsText = detailsBlockMatch[1];
         
         const getMatch = (label) => {
-            // Regex to match the label followed by a colon and capture everything until the next comma or end of string
             const regex = new RegExp(`${label}\\s*:\\s*([^,]+?)`, 'i');
             return detailsText.match(regex)?.[1]?.trim().replace(/[.,]$/g, '') || 'N/A';
         };
 
-        // Extraction of the six details
         data.details.humidity = getMatch('Humidity');
         data.details.windSpeed = getMatch('Wind speed');
         data.details.pressure = getMatch('Pressure');
         
         const uvFull = getMatch('UV Index');
-        // Extract only the number for UV Index
-        data.details.uvIndex = uvFull.match(/(\d+\.?\d*)/)?.[1] || 'N/A';
+        data.details.uvIndex = uvFull.split(' ')[0] || 'N/A'; 
         
         const aqiFull = getMatch('Air Quality');
         if (aqiFull !== 'N/A') {
-            // Extracts number inside parentheses or first number found for AQI
             data.details.aqiIndex = aqiFull.match(/\((\d+)\)/)?.[1] || aqiFull.match(/(\d+)/)?.[1] || 'N/A';
         }
     }
     
-    // Final check and fallback for Feels Like
     if (data.temp.current !== 'N/A' && data.temp.feelsLike === 'N/A') {
         data.temp.feelsLike = data.temp.current; 
     }
     
-    // --- Mock Forecast Data (Using current temp for mock) ---
+    // --- Mock Forecast Data (Crucial for UI) ---
     if (data.temp.current !== 'N/A' && !isNaN(parseFloat(data.temp.current))) {
         const baseTemp = parseFloat(data.temp.current);
         const desc = data.description !== 'N/A' ? data.description : 'clear sky';
@@ -523,7 +494,6 @@ const handleSearchSubmit = async () => {
     searchCityInput.disabled = true;
     showMessage(`Fetching weather for ${cityQuery}... ⏳`, false);
 
-    // Get coordinates first (This uses OpenCage)
     const { lat, lon } = await getCoordinatesForCity(cityQuery);
 
     try {
@@ -543,8 +513,7 @@ const handleSearchSubmit = async () => {
             smoothScrollTo(weatherContent); 
 
         } else {
-            // Show the exact response text from Gemini if parsing fails
-            showMessage(`Mausam ki jaankari nahi mil saki. Gemini Response: "${botText}"`, true);
+            showMessage(`Mausam ki jaankari nahi mil saki. Server response: "${botText}"`, true);
             clearWeatherUI();
         }
     } 
@@ -596,7 +565,7 @@ if (hourlyTabButton && hourlyForecastSection) {
         smoothScrollTo(hourlyForecastSection); 
     });
 }
-//  SCROLLING LOGIC FOR DAILY/WEEKLY
+//  SCROLLING LOGIC FOR DAILY/WEEKLY
 if (dailyTabButton && weeklyForecastSection) {
     dailyTabButton.addEventListener('click', () => {
         smoothScrollTo(weeklyForecastSection);
@@ -613,6 +582,3 @@ window.onload = () => {
     searchCityInput.value = 'Agra, India';
     handleSearchSubmit();
 };
-// --- CONFIGURATION ---
-// Base URL for the structured API endpoints (assuming chat, hourly, weekly are under /api)
-

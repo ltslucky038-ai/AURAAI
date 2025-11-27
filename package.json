@@ -1,27 +1,27 @@
 {
-  "name": "auraai",
+  "name": "new-folder",
   "version": "1.0.0",
   "description": "",
-  "main": "server.js",
+  "main": "script.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ltslucky038-ai/AURAAI.git"
-  },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/ltslucky038-ai/AURAAI/issues"
-  },
-  "homepage": "https://github.com/ltslucky038-ai/AURAAI#readme",
   "dependencies": {
     "@google/genai": "^1.30.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ltslucky038-ai/AURAAI.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ltslucky038-ai/AURAAI/issues"
+  },
+  "homepage": "https://github.com/ltslucky038-ai/AURAAI#readme"
 }
