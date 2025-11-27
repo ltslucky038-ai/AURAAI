@@ -1,0 +1,139 @@
+/*
+    Custom CSS for AURORA FORECAST App (Pure Weather Mode)
+    (Enhancing the dark theme and neon glow effect)
+*/
+
+/* --- Base Styles --- */
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+/* Base App Container Styling (Dark, Bordered Look) */
+.app-container {
+    width: 100%;
+    max-width: 1400px;
+    margin: 20px auto;
+    height: calc(100vh - 40px); /* Fill viewport minus margin */
+    background: rgba(5, 10, 15, 0.9); /* Use aurora-bg from config */
+    border: 1px solid rgba(0, 255, 255, 0.3); /* Use aurora-frame/30 */
+    border-radius: 20px;
+    backdrop-filter: blur(5px);
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 255, 255, 0.1); /* Subtle outer glow */
+}
+
+/* --- Navigation Styles --- */
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* For mobile icon-only view */
+    height: 48px;
+    padding: 10px;
+    border-radius: 12px;
+    color: #9ca3af; /* Default gray text */
+    transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+    font-weight: 500;
+    width: 100%;
+}
+.nav-item span {
+    margin-left: 1rem;
+    text-align: left;
+    flex-grow: 1;
+}
+
+.nav-item:hover {
+    background-color: rgba(0, 255, 255, 0.1); /* Light aurora-blue hover */
+    color: white;
+}
+
+.active-nav-item {
+    background-color: rgba(0, 255, 255, 0.2); /* Stronger background for active */
+    color: #00eaff; /* aurora-blue text */
+    box-shadow: 0 0 15px rgba(0, 234, 255, 0.4); /* Neon inner glow */
+}
+
+/* Adjust nav-item for large screens */
+@media (min-width: 1024px) {
+    .nav-item {
+        justify-content: flex-start; /* Align left on desktop */
+    }
+}
+
+/* --- Glow Effects --- */
+
+/* Applied to the main logo and key icons */
+.lucide-icon-glow {
+    filter: drop-shadow(0 0 8px #00eaff);
+}
+
+.icon-large i[data-lucide] {
+    filter: drop-shadow(0 0 20px #00eaff); /* Stronger glow for main icon */
+}
+
+/* --- Map Placeholders --- */
+
+.map-card {
+    background-image: linear-gradient(135deg, rgba(10, 20, 30, 0.7), rgba(0, 255, 255, 0.05));
+    overflow: hidden;
+}
+
+.map-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* Subtle pulsing effect for a radar feel */
+    background: radial-gradient(circle at center, rgba(0, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
+    animation: pulse 4s infinite ease-in-out;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.05); }
+    100% { opacity: 0.5; transform: scale(1); }
+}
+
+/* --- Forecast Containers (Scrollbar Styling) --- */
+
+/* Webkit-based browsers (Chrome, Safari, Edge) */
+.hourly-forecast-container::-webkit-scrollbar,
+.daily-forecast-container::-webkit-scrollbar {
+    height: 6px;
+}
+
+.hourly-forecast-container::-webkit-scrollbar-track,
+.daily-forecast-container::-webkit-scrollbar-track {
+    background: rgba(10, 20, 30, 0.5); /* Dark track */
+    border-radius: 3px;
+}
+
+.hourly-forecast-container::-webkit-scrollbar-thumb,
+.daily-forecast-container::-webkit-scrollbar-thumb {
+    background: #00eaff; /* Aurora blue thumb */
+    border-radius: 3px;
+}
+
+.hourly-forecast-container, .daily-forecast-container {
+    padding-bottom: 5px; /* Space for the custom scrollbar */
+}
+
+/* --- AQI Pill Status Styling (Example classes for JS to use) --- */
+
+.aqi-pill {
+    font-weight: bold;
+}
+
+.aqi-good {
+    background-color: #16a34a; /* Green */
+}
+
+.aqi-moderate {
+    background-color: #f59e0b; /* Yellow/Orange */
+}
+
+.aqi-unhealthy-sensitive {
+    background-color: #dc2626; /* Red */
+}
