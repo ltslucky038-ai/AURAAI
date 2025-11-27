@@ -618,7 +618,7 @@
 
 
 // --- CONFIGURATION ---
-const WEATHER_API_ENDPOINT = 'https://auraai-13.onrender.com/api/chat'; 
+const WEATHER_API_ENDPOINT='https://auraai-14.onrender.com/api/chat'; 
 // ⭐ NOTE: REPLACE 'YOUR_GEOCODING_API_KEY' with your actual API key!
 // WARNING: Exposed client-side keys are a security risk.
 const GEOCODING_API_KEY = '9a571351ccb74e2aa233f574e9801767'; 
