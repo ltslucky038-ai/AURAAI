@@ -158,7 +158,7 @@ if (!GEMINI_API_KEY) {
 console.log(`Debug Check: API Key loaded (Length): ${GEMINI_API_KEY.length > 5 ? GEMINI_API_KEY.length : 'Too Short!'}`);
 
 // AI client ko API key ke saath initialize karein
-const ai = new GoogleGenAI({ apiKey:GEMINI_API_KEY}); 
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY}); 
 
 // --- 3. MIDDLEWARE SETUP ---
 // Sabhi origins se requests ki anumati (Client-side HTML/JS ke liye zaruri)
