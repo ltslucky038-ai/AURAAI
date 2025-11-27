@@ -1,139 +1,185 @@
-/*
-    Custom CSS for AURORA FORECAST App (Pure Weather Mode)
-    (Enhancing the dark theme and neon glow effect)
-*/
+/* ---------------------------------------------------- */
+/* 1. GLOBAL & BODY STYLES (PREMIUM BACKGROUND) */
+/* ---------------------------------------------------- */
 
-/* --- Base Styles --- */
-html, body {
-    height: 100%;
-    margin: 0;
+body {
+    /* एक अंधेरे, फ्यूचरिस्टिक शहर की छवि का उपयोग करें - आपको यह छवि स्वयं जोड़नी होगी */
+    background: url('https://images.unsplash.com/photo-1549488344-90209a30d508?fit=crop&w=1920&q=80') no-repeat center center fixed; 
+    background-size: cover;
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* स्लीक, मॉडर्न फॉन्ट */
+    color: #f0f8ff; /* हल्का नीला-सफेद */
 }
 
-/* Base App Container Styling (Dark, Bordered Look) */
+/* ---------------------------------------------------- */
+/* 2. MAIN APP FRAME (GLASS MORPHISM) */
+/* ---------------------------------------------------- */
+
 .app-container {
-    width: 100%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 95vw; 
     max-width: 1400px;
-    margin: 20px auto;
-    height: calc(100vh - 40px); /* Fill viewport minus margin */
-    background: rgba(5, 10, 15, 0.9); /* Use aurora-bg from config */
-    border: 1px solid rgba(0, 255, 255, 0.3); /* Use aurora-frame/30 */
-    border-radius: 20px;
-    backdrop-filter: blur(5px);
-    overflow: hidden;
-    box-shadow: 0 0 50px rgba(0, 255, 255, 0.1); /* Subtle outer glow */
+    height: 90vh; 
+    max-height: 850px;
+    
+    /* मुख्य ग्लास मोर्फिज़्म इफ़ेक्ट */
+    background: rgba(10, 20, 30, 0.85); /* गहरा पारदर्शी बेस */
+    backdrop-filter: blur(12px); 
+    -webkit-backdrop-filter: blur(12px);
+
+    /* क्रोम/नियॉन बॉर्डर और शैडो */
+    border: 2px solid rgba(0, 255, 255, 0.4);
+    border-radius: 1.5rem; 
+    box-shadow: 0 0 80px rgba(0, 234, 255, 0.3), 
+                0 0 10px rgba(0, 234, 255, 0.7) inset; /* नियॉन इनर ग्लो */
+    overflow: hidden; 
 }
 
-/* --- Navigation Styles --- */
+/* ---------------------------------------------------- */
+/* 3. GENERAL GLASS PANELS & METRICS */
+/* ---------------------------------------------------- */
+
+.glass-panel {
+    background: rgba(10, 20, 30, 0.7);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    border-radius: 0.75rem;
+    box-shadow: 0 0 10px rgba(0, 234, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.glass-panel:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 20px rgba(0, 234, 255, 0.4);
+}
+
+.detail-metric {
+    padding: 1rem;
+    text-align: center;
+}
+
+/* AQI Pill Styling */
+.aqi-pill {
+    background-color: #10b981; /* Default Green for Good */
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.8);
+    transition: all 0.3s;
+}
+
+/* Search Input Styling (More refined border/glow) */
+.glass-panel-input {
+    background: rgba(50, 60, 70, 0.4);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    border-radius: 9999px; /* full rounded */
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.1);
+}
+
+.glass-panel-input input:focus {
+    box-shadow: 0 0 5px #00eaff;
+}
+
+/* ---------------------------------------------------- */
+/* 4. NAVIGATION STYLES */
+/* ---------------------------------------------------- */
+
+.aside-panel {
+    border-right: 1px solid rgba(0, 255, 255, 0.2);
+}
 
 .nav-item {
     display: flex;
     align-items: center;
-    justify-content: center; /* For mobile icon-only view */
-    height: 48px;
-    padding: 10px;
-    border-radius: 12px;
-    color: #9ca3af; /* Default gray text */
-    transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+    justify-content: center; 
+    padding: 0.75rem 0.5rem;
+    border-radius: 0.5rem;
+    color: #94a3b8; 
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
     font-weight: 500;
-    width: 100%;
-}
-.nav-item span {
-    margin-left: 1rem;
-    text-align: left;
-    flex-grow: 1;
+    text-transform: uppercase;
+    font-size: 0.875rem;
 }
 
 .nav-item:hover {
-    background-color: rgba(0, 255, 255, 0.1); /* Light aurora-blue hover */
-    color: white;
+    color: #ffffff;
+    background-color: rgba(0, 234, 255, 0.15);
+    border: 1px solid rgba(0, 234, 255, 0.6);
+    box-shadow: 0 0 12px rgba(0, 234, 255, 0.5); 
 }
 
 .active-nav-item {
-    background-color: rgba(0, 255, 255, 0.2); /* Stronger background for active */
-    color: #00eaff; /* aurora-blue text */
-    box-shadow: 0 0 15px rgba(0, 234, 255, 0.4); /* Neon inner glow */
+    color: #ffffff !important;
+    background-color: rgba(0, 234, 255, 0.3) !important;
+    border: 2px solid #00eaff !important;
+    box-shadow: 0 0 20px rgba(0, 234, 255, 1), inset 0 0 10px rgba(0, 234, 255, 0.8) !important;
+    font-weight: 700;
 }
 
-/* Adjust nav-item for large screens */
-@media (min-width: 1024px) {
-    .nav-item {
-        justify-content: flex-start; /* Align left on desktop */
-    }
+/* ---------------------------------------------------- */
+/* 5. MAIN WEATHER CARD (THE FOCAL POINT) */
+/* ---------------------------------------------------- */
+
+.main-weather-card {
+    /* ओवरराइडिंग ग्लास-पैनल स्टाइल */
+    background: rgba(10, 20, 30, 0.95) !important; 
+    border: 3px solid #00eaff; /* सबसे मजबूत सियान फ्रेम */
+    box-shadow: 0 4px 50px rgba(0, 234, 255, 0.3), 
+                0 0 40px rgba(0, 234, 255, 0.8); /* भारी नियॉन ग्लो */
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    transition: all 0.5s ease;
 }
 
-/* --- Glow Effects --- */
+/* Large Temperature Text - Ethereal Look */
+#temperature {
+    font-size: 9rem; /* 144px */
+    font-weight: 100; /* बहुत पतला */
+    text-shadow: 0 0 20px #ffffff, 0 0 10px #00eaff; /* हल्का श्वेत और सियान ग्लो */
+    line-height: 1;
+}
 
-/* Applied to the main logo and key icons */
+/* ---------------------------------------------------- */
+/* 6. ICON GLOWS */
+/* ---------------------------------------------------- */
+
 .lucide-icon-glow {
     filter: drop-shadow(0 0 8px #00eaff);
+    color: #00eaff;
 }
 
-.icon-large i[data-lucide] {
-    filter: drop-shadow(0 0 20px #00eaff); /* Stronger glow for main icon */
+.lucide-icon-glow-sm {
+    filter: drop-shadow(0 0 4px #00eaff);
+    color: #00eaff;
 }
 
-/* --- Map Placeholders --- */
+/* ---------------------------------------------------- */
+/* 7. SCROLLBAR (OPTIONAL - FOR A SLEEK LOOK) */
+/* ---------------------------------------------------- */
 
-.map-card {
-    background-image: linear-gradient(135deg, rgba(10, 20, 30, 0.7), rgba(0, 255, 255, 0.05));
-    overflow: hidden;
-}
-
-.map-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    /* Subtle pulsing effect for a radar feel */
-    background: radial-gradient(circle at center, rgba(0, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
-    animation: pulse 4s infinite ease-in-out;
-}
-
-@keyframes pulse {
-    0% { opacity: 0.5; transform: scale(1); }
-    50% { opacity: 0.8; transform: scale(1.05); }
-    100% { opacity: 0.5; transform: scale(1); }
-}
-
-/* --- Forecast Containers (Scrollbar Styling) --- */
-
-/* Webkit-based browsers (Chrome, Safari, Edge) */
+/* Webkit based browsers (Chrome, Safari) */
+main::-webkit-scrollbar,
 .hourly-forecast-container::-webkit-scrollbar,
 .daily-forecast-container::-webkit-scrollbar {
+    width: 6px;
     height: 6px;
 }
 
+main::-webkit-scrollbar-track,
 .hourly-forecast-container::-webkit-scrollbar-track,
 .daily-forecast-container::-webkit-scrollbar-track {
-    background: rgba(10, 20, 30, 0.5); /* Dark track */
-    border-radius: 3px;
+    background: transparent;
 }
 
+main::-webkit-scrollbar-thumb,
 .hourly-forecast-container::-webkit-scrollbar-thumb,
 .daily-forecast-container::-webkit-scrollbar-thumb {
-    background: #00eaff; /* Aurora blue thumb */
-    border-radius: 3px;
+    background-color: rgba(0, 255, 255, 0.4);
+    border-radius: 10px;
 }
 
-.hourly-forecast-container, .daily-forecast-container {
-    padding-bottom: 5px; /* Space for the custom scrollbar */
-}
-
-/* --- AQI Pill Status Styling (Example classes for JS to use) --- */
-
-.aqi-pill {
-    font-weight: bold;
-}
-
-.aqi-good {
-    background-color: #16a34a; /* Green */
-}
-
-.aqi-moderate {
-    background-color: #f59e0b; /* Yellow/Orange */
-}
-
-.aqi-unhealthy-sensitive {
-    background-color: #dc2626; /* Red */
+main::-webkit-scrollbar-thumb:hover,
+.hourly-forecast-container::-webkit-scrollbar-thumb:hover,
+.daily-forecast-container::-webkit-scrollbar-thumb:hover {
+    background-color: #00eaff;
 }
