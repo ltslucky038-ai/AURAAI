@@ -1,584 +1,1139 @@
+// // OWM Key: Note: API_KEY is now used for OWM in the frontend
+// const API_KEY = "de414a9b4341a549efd4b962de804908"; 
+// const BASE_WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather";
+// const BASE_FORECAST_URL = "https://api.openweathermap.org/data/2.5/forecast";
+// const DEFAULT_CITY = "New York";
 
-const WEATHER_API_ENDPOINT = 'https://auraai-17.onrender.com/api/chat'; 
-// ⭐ NOTE: REPLACE 'YOUR_GEOCODING_API_KEY' with your actual API key!
-const GEOCODING_API_KEY = '9a571351ccb74e2aa233f574e9801767';
-// 💾 Global State & Memory
-let currentUnit = 'celsius'; 
-let currentWeatherData = null; 
-let mapInstance = null;
-let aqiChartInstance = null; 
-const cityCoordinatesCache = {}; 
-// --- DOM Elements ---
-const weatherContent = document.getElementById('weatherContent');
-const unitToggle = document.getElementById('unitToggle');
+// // >>> [नया: प्रॉक्सी सर्वर URL] <<<
+// const GEMINI_PROXY_URL = "http://localhost:3000/api/gemini-weather"; 
+
+// let unit = 'C'; // Default unit is Celsius
+// let currentLat = 40.7128; // Default New York Lat
+// let currentLon = -74.0060; // Default New York Lon
+
+// // --- 2. DOM ELEMENT REFERENCES ---
+// const cityNameEl = document.getElementById('cityName');
+// const currentDateEl = document.getElementById('currentDate');
+// const currentTimeEl = document.getElementById('currentTime');
+// const searchCityInput = document.getElementById('searchCityInput');
+// const searchCityButton = document.getElementById('searchCityButton');
+// const errorMsgEl = document.getElementById('errorMsg');
+// const unitToggle = document.getElementById('unitToggle');
+
+// // Main Content Elements
+// const tempEl = document.getElementById('temperature');
+// const descriptionEl = document.getElementById('description');
+// const feelsLikeEl = document.getElementById('feelsLike');
+// const humidityEl = document.getElementById('humidity');
+// const windSpeedEl = document.getElementById('windSpeed');
+// const pressureEl = document.getElementById('pressure');
+// const aqiIndexEl = document.getElementById('aqiIndex');
+// const aqiDescriptionEl = document.getElementById('aqiDescription');
+// const uvIndexEl = document.getElementById('uvIndex');
+// const uvAdviceEl = document.getElementById('uvAdvice');
+
+// // Forecast Elements
+// const hourlyContainer = document.getElementById('hourlyForecastContainer');
+// const dailyContainer = document.getElementById('dailyForecastContainer');
+
+// // --- 3. HELPER FUNCTIONS ---
+
+// // Temperature conversion
+// const convertTemp = (temp, currentUnit) => {
+//     if (currentUnit === 'C') {
+//         // Convert Kelvin to Celsius (K - 273.15)
+//         return Math.round(temp - 273.15); 
+//     } else {
+//         // Convert Kelvin to Fahrenheit ((K - 273.15) * 9/5 + 32)
+//         return Math.round(((temp - 273.15) * 9 / 5) + 32); 
+//     }
+// };
+
+// // Weather condition to Lucide Icon mapping
+// const getWeatherIcon = (condition) => {
+//     condition = condition.toLowerCase();
+//     if (condition.includes('clear')) return 'sun';
+//     if (condition.includes('cloud') || condition.includes('overcast')) return 'cloud';
+//     if (condition.includes('rain') || condition.includes('drizzle')) return 'cloud-rain';
+//     if (condition.includes('thunderstorm')) return 'cloud-lightning';
+//     if (condition.includes('snow')) return 'cloud-snow';
+//     if (condition.includes('mist') || condition.includes('fog')) return 'cloud-fog';
+//     return 'thermometer'; // Default icon
+// };
+
+// // UV Index Advice (Simplified)
+// const getUVAdvice = (index) => {
+//     if (index < 3) return 'Low';
+//     if (index < 6) return 'Moderate';
+//     if (index < 8) return 'High';
+//     if (index < 11) return 'Very High';
+//     return 'Extreme';
+// };
+
+// // AQI Color and Description (Mocked as real AQI requires different API)
+// const getAqiInfo = (aqi) => {
+//     if (aqi <= 50) return { desc: 'Good', color: 'bg-green-600' };
+//     if (aqi <= 100) return { desc: 'Moderate', color: 'bg-yellow-600' };
+//     if (aqi <= 150) return { desc: 'Unhealthy for Sensitive Groups', color: 'bg-orange-600' };
+//     return { desc: 'Unhealthy', color: 'bg-red-600' };
+// };
+
+
+// // --- 4. MAP AND CHART INITIALIZATION ---
+
+// let map;
+// let aqiChartInstance;
+
+// // Initialize Leaflet Map
+// const initMap = (lat, lon) => {
+//     if (map) {
+//         map.remove(); // Remove existing map instance
+//     }
+//     map = L.map('weatherMap', { zoomControl: false }).setView([lat, lon], 10);
+//     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+//         attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+//         maxZoom: 18,
+//     }).addTo(map);
+
+//     L.marker([lat, lon]).addTo(map);
+// };
+
+// // Initialize Chart.js Chart
+// const initAqiChart = (aqiData) => {
+//     const ctx = document.getElementById('aqiChart').getContext('2d');
+//     
+//     // Destroy previous chart instance if exists
+//     if (aqiChartInstance) {
+//         aqiChartInstance.destroy();
+//     }
+
+//     aqiChartInstance = new Chart(ctx, {
+//         type: 'line',
+//         data: {
+//             labels: aqiData.labels,
+//             datasets: [{
+//                 label: 'AQI',
+//                 data: aqiData.data,
+//                 borderColor: '#00eaff',
+//                 backgroundColor: 'rgba(0, 234, 255, 0.1)',
+//                 borderWidth: 2,
+//                 pointBackgroundColor: '#00eaff',
+//                 tension: 0.4,
+//                 fill: true
+//             }]
+//         },
+//         options: {
+//             responsive: true,
+//             maintainAspectRatio: false,
+//             plugins: {
+//                 legend: { display: false },
+//                 tooltip: { mode: 'index', intersect: false }
+//             },
+//             scales: {
+//                 x: { ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+//                 y: { min: 0, ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+//             }
+//         }
+//     });
+// };
+
+
+// // --- 5. DATA FETCHERS ---
+
+// // Real time and date updates
+// const updateTime = () => {
+//     const now = new Date();
+//     currentDateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+//     currentTimeEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+// };
+// setInterval(updateTime, 1000);
+// updateTime(); // Initial call
+
+// // Fetch main weather data (Current, Feels Like, Wind, Pressure, etc.)
+// async function fetchCurrentWeather(city) {
+//     if (API_KEY === "YOUR_API_KEY_HERE") {
+//         throw new Error("API Key not configured. Please get an OpenWeatherMap API key and replace 'YOUR_API_KEY_HERE' in script.js.");
+//     }
+//     const url = `${BASE_WEATHER_URL}?q=${city}&appid=${API_KEY}`;
+//     const response = await fetch(url);
+//     if (!response.ok) {
+//         // If OWM returns 404 or any error, we throw to trigger the catch block (fallback)
+//         throw new Error(`Could not fetch current weather for ${city}. Status: ${response.status}`);
+//     }
+//     return response.json();
+// }
+
+// // Fetch forecast data (Hourly and Daily)
+// async function fetchForecast(city) {
+//     const url = `${BASE_FORECAST_URL}?q=${city}&appid=${API_KEY}`;
+//     const response = await fetch(url);
+//     if (!response.ok) {
+//         // NOTE: We don't throw here. If current weather succeeded, but forecast failed, 
+//         // we just return null and the UI handles it gracefully.
+//         console.warn(`Could not fetch forecast for ${city}. Status: ${response.status}`);
+//         return null; 
+//     }
+//     return response.json();
+// }
+
+// // Fetch mock AQI data 
+// function getMockAqiData() {
+//     return {
+//         index: Math.floor(Math.random() * 150) + 10, // Mock AQI value
+//         chart: {
+//             labels: ['1AM', '4AM', '7AM', '10AM', '1PM', '4PM', '7PM'],
+//             data: [55, 60, 45, 70, 80, 75, 65] 
+//         },
+//         uvIndex: Math.floor(Math.random() * 11) + 1 // Mock UV index
+//     };
+// }
+
+// // >>> [नया: Gemini API Fallback Function] <<<
+// async function fetchWeatherFallbackFromGemini(city) {
+//     try {
+//         const response = await fetch(GEMINI_PROXY_URL, {
+//             method: 'POST',
+//             headers: {
+//                 'Content-Type': 'application/json',
+//             },
+//             body: JSON.stringify({ city }),
+//         });
+
+//         if (!response.ok) {
+//             const errorData = await response.json();
+//             throw new Error(`Proxy Server Error: ${errorData.error || 'Unknown error'}`);
+//         }
+
+//         const data = await response.json();
+//         return {
+//             name: data.city,
+//             isGemini: true,
+//             summary: data.summary,
+//         };
+
+//     } catch (error) {
+//         console.error("Gemini Proxy Request Error:", error);
+//         return {
+//             isGemini: false,
+//             error: error.message
+//         };
+//     }
+// }
+
+
+// // --- 6. RENDER FUNCTIONS ---
+
+// // Render main current weather details
+// const renderCurrentWeather = (data) => {
+//     const tempC = convertTemp(data.main.temp, 'C');
+//     const feelsLikeC = convertTemp(data.main.feels_like, 'C');
+
+//     currentLat = data.coord.lat;
+//     currentLon = data.coord.lon;
+//     
+//     // Main Section Update
+//     cityNameEl.textContent = `${data.name}, ${data.sys.country}`;
+//     tempEl.textContent = `${unit === 'C' ? tempC : convertTemp(data.main.temp, 'F')}°${unit}`;
+//     descriptionEl.textContent = data.weather[0].description;
+//     feelsLikeEl.textContent = `${unit === 'C' ? feelsLikeC : convertTemp(data.main.feels_like, 'F')}°${unit}`;
+
+//     // Icon Update
+//     const iconName = getWeatherIcon(data.weather[0].main);
+//     document.getElementById('weatherIcon').innerHTML = `<i data-lucide="${iconName}" class="lucide-icon-glow" style="width: 120px; height: 120px;"></i>`;
+//     lucide.createIcons();
+//     
+//     // Metrics Update
+//     humidityEl.textContent = `${data.main.humidity}%`;
+//     windSpeedEl.textContent = `${(data.wind.speed * 3.6).toFixed(1)} km/h`; // m/s to km/h
+//     pressureEl.textContent = `${data.main.pressure} hPa`;
+//     
+//     // Mock AQI/UV Data Update
+//     const aqiData = getMockAqiData();
+//     const aqiInfo = getAqiInfo(aqiData.index);
+
+//     aqiIndexEl.textContent = aqiData.index;
+//     aqiDescriptionEl.textContent = `Air Quality: ${aqiInfo.desc}`;
+//     aqiDescriptionEl.className = `aqi-pill py-1 px-3 rounded-full text-white shadow-lg ${aqiInfo.color}`;
+
+//     uvIndexEl.textContent = aqiData.uvIndex;
+//     uvAdviceEl.textContent = `(${getUVAdvice(aqiData.uvIndex)})`;
+
+//     // Map and Chart Update
+//     initMap(currentLat, currentLon);
+//     initAqiChart(aqiData.chart);
+
+//     errorMsgEl.classList.add('hidden');
+// };
+
+// // >>> [नया: Gemini Fallback Render Function] <<<
+// const renderGeminiFallback = (data) => {
+//     // Clear dynamic metrics as Gemini only returns a summary text
+//     document.getElementById('weatherIcon').innerHTML = `<i data-lucide="sparkles" class="lucide-icon-glow" style="width: 120px; height: 120px;"></i>`;
+//     lucide.createIcons();
+    
+//     // Main Section Update
+//     cityNameEl.textContent = `${data.name} (AI Summary)`;
+    
+//     // Display the summary text in the main display area
+//     tempEl.textContent = 'AI Data';
+//     descriptionEl.innerHTML = `<span class="text-lg text-yellow-300 font-normal">
+//         ${data.summary}
+//     </span>`;
+    
+//     // Clear/Reset other metrics to N/A
+//     feelsLikeEl.textContent = `N/A`;
+//     humidityEl.textContent = `N/A`;
+//     windSpeedEl.textContent = `N/A`;
+//     pressureEl.textContent = `N/A`;
+//     aqiIndexEl.textContent = 'N/A';
+//     aqiDescriptionEl.textContent = `Air Quality: N/A`;
+//     aqiDescriptionEl.className = `aqi-pill py-1 px-3 rounded-full text-white bg-gray-600`;
+//     uvIndexEl.textContent = 'N/A';
+//     uvAdviceEl.textContent = `(N/A)`;
+
+//     // Map and Chart initialization will use default/current values or can be cleared
+//     initMap(currentLat, currentLon); // Keeps map at last known location
+//     initAqiChart({ labels: [], data: [] }); // Clears chart
+
+//     errorMsgEl.textContent = 'Weather API failed to find the city. Using Gemini AI for general weather summary.';
+//     errorMsgEl.classList.remove('hidden');
+// };
+
+// // Render hourly forecast
+// const renderHourlyForecast = (data) => {
+//     hourlyContainer.innerHTML = ''; // Clear previous content
+//     
+//     // Filter forecast to get the next 5 hours (starting from the next full hour)
+//     const hourlyList = data.list.slice(0, 5); 
+
+//     if (hourlyList.length === 0) {
+//         hourlyContainer.innerHTML = '<p class="text-gray-500 text-center w-full">No hourly data available.</p>';
+//         return;
+//     }
+
+//     hourlyList.forEach(item => {
+//         const time = new Date(item.dt * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+//         const temp = unit === 'C' ? convertTemp(item.main.temp, 'C') : convertTemp(item.main.temp, 'F');
+//         const iconName = getWeatherIcon(item.weather[0].main);
+
+//         const hourlyCard = document.createElement('div');
+//         hourlyCard.className = 'w-24 p-3 rounded-xl border border-aurora-frame/50 bg-aurora-dark/50 flex flex-col items-center flex-shrink-0 transition-transform duration-300 hover:scale-105 hover:border-aurora-blue/50';
+//         hourlyCard.innerHTML = `
+//             <p class="text-sm font-semibold">${time}</p>
+//             <i data-lucide="${iconName}" class="w-6 h-6 my-2 text-aurora-blue lucide-icon-glow"></i>
+//             <p class="text-lg font-bold">${temp}°${unit}</p>
+//             <p class="text-xs text-gray-400 capitalize">${item.weather[0].description}</p>
+//         `;
+//         hourlyContainer.appendChild(hourlyCard);
+//     });
+//     lucide.createIcons(); // Re-render icons
+// };
+
+// // Render daily (weekly) forecast
+// const renderDailyForecast = (data) => {
+//     dailyContainer.innerHTML = ''; // Clear previous content
+//     
+//     // Logic to extract one entry per day for 5 days
+//     const dailyData = {};
+//     const today = new Date().toDateString();
+
+//     data.list.forEach(item => {
+//         const date = new Date(item.dt * 1000);
+//         const dayString = date.toDateString();
+
+//         if (dayString !== today && Object.keys(dailyData).length < 5) {
+//              // Only save if it's the first reading for the day
+//             if (!dailyData[dayString]) {
+//                 dailyData[dayString] = {
+//                     day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+//                     temp_max: item.main.temp_max,
+//                     temp_min: item.main.temp_min,
+//                     icon: getWeatherIcon(item.weather[0].main)
+//                 };
+//             } else {
+//                 // Update max/min for the day
+//                 dailyData[dayString].temp_max = Math.max(dailyData[dayString].temp_max, item.main.temp_max);
+//                 dailyData[dayString].temp_min = Math.min(dailyData[dayString].temp_min, item.main.temp_min);
+//             }
+//         }
+//     });
+
+//     Object.values(dailyData).forEach(day => {
+//         const maxTemp = unit === 'C' ? convertTemp(day.temp_max, 'C') : convertTemp(day.temp_max, 'F');
+//         const minTemp = unit === 'C' ? convertTemp(day.temp_min, 'C') : convertTemp(day.temp_min, 'F');
+
+//         const dailyCard = document.createElement('div');
+//         dailyCard.className = 'w-32 p-3 rounded-xl border border-aurora-frame/50 bg-aurora-dark/50 flex flex-col items-center flex-shrink-0 transition-transform duration-300 hover:scale-105 hover:border-aurora-blue/50';
+//         dailyCard.innerHTML = `
+//             <p class="text-sm font-semibold">${day.day}</p>
+//             <i data-lucide="${day.icon}" class="w-8 h-8 my-2 text-aurora-blue lucide-icon-glow"></i>
+//             <p class="text-lg font-bold">${maxTemp}°${unit}</p>
+//             <p class="text-sm text-gray-400">Low: ${minTemp}°${unit}</p>
+//         `;
+//         dailyContainer.appendChild(dailyCard);
+//     });
+//     lucide.createIcons(); // Re-render icons
+// };
+
+// // --- 7. MAIN CONTROLLER ---
+
+// async function fetchAllWeatherData(city) {
+//     // Initial loading state setup...
+//     errorMsgEl.classList.add('hidden');
+//     errorMsgEl.textContent = '';
+//     tempEl.textContent = '...';
+//     descriptionEl.textContent = 'Fetching data...';
+//     hourlyContainer.innerHTML = '<p class="text-gray-400 text-center w-full">Loading hourly...</p>';
+//     dailyContainer.innerHTML = '<p class="text-gray-400 text-center w-full">Loading weekly...</p>';
+
+
+//     try {
+//         // 1. Attempt OpenWeatherMap Call
+//         const currentData = await fetchCurrentWeather(city);
+//         renderCurrentWeather(currentData);
+
+//         // 2. Fetch Forecast (If OWM succeeded)
+//         const forecastData = await fetchForecast(city);
+//         if (forecastData) {
+//             renderHourlyForecast(forecastData);
+//             renderDailyForecast(forecastData);
+//         } else {
+//             // Handle scenario where current weather works but forecast fails
+//             hourlyContainer.innerHTML = '<p class="text-gray-500 text-center w-full">Hourly forecast data unavailable.</p>';
+//             dailyContainer.innerHTML = '<p class="text-gray-500 text-center w-full">Weekly forecast data unavailable.</p>';
+//         }
+
+//     } catch (error) {
+//         console.warn(`OWM failed for ${city}: ${error.message}. Attempting Gemini fallback.`);
+//         
+//         // 3. OWM Failed: Attempt Gemini Fallback
+//         const geminiResult = await fetchWeatherFallbackFromGemini(city);
+
+//         if (geminiResult.isGemini) {
+//             // Gemini succeeded: Render the summary
+//             renderGeminiFallback(geminiResult); 
+//             // Clear forecast sections as Gemini doesn't provide structured forecast data
+//             hourlyContainer.innerHTML = '<p class="text-yellow-400 text-center w-full">Hourly forecast not available with AI summary.</p>';
+//             dailyContainer.innerHTML = '<p class="text-yellow-400 text-center w-full">Weekly forecast not available with AI summary.</p>';
+//         } else {
+//             // Both OWM and Gemini failed (or proxy server error)
+//             console.error("Fatal Error: Both APIs failed.", geminiResult.error);
+//             errorMsgEl.textContent = `Error: City not found, and AI fallback failed. Details: ${geminiResult.error || error.message}`;
+//             errorMsgEl.classList.remove('hidden');
+//             
+//             // Reset display on error
+//             cityNameEl.textContent = 'Location Error';
+//             tempEl.textContent = 'N/A';
+//             descriptionEl.textContent = 'Failed to load weather data.';
+//             hourlyContainer.innerHTML = '<p class="text-red-400 text-center w-full">Error loading data.</p>';
+//             dailyContainer.innerHTML = '<p class="text-red-400 text-center w-full">Error loading data.</p>';
+//         }
+//     }
+// }
+
+
+// // --- 8. EVENT LISTENERS ---
+
+// // Search button click or Enter key press
+// searchCityButton.addEventListener('click', () => {
+//     const city = searchCityInput.value.trim();
+//     if (city) {
+//         fetchAllWeatherData(city);
+//     }
+// });
+
+// searchCityInput.addEventListener('keypress', (e) => {
+//     if (e.key === 'Enter') {
+//         searchCityButton.click();
+//     }
+// });
+
+// // Unit Toggle
+// unitToggle.addEventListener('click', () => {
+//     unit = (unit === 'C') ? 'F' : 'C';
+//     unitToggle.querySelector('span').textContent = (unit === 'C') ? 'Switch to °F' : 'Switch to °C';
+//     
+//     // Re-fetch/Re-render data to apply new unit
+//     // We only need to re-render if we have OWM data (because Gemini output is just text)
+//     const currentCityText = cityNameEl.textContent.split(',')[0].trim();
+//     // Check if it's OWM data (not an AI Summary)
+//     if (currentCityText !== 'Location Error' && !currentCityText.includes('(AI Summary)')) {
+//         fetchAllWeatherData(currentCityText); 
+//     } else if (currentCityText.includes('(AI Summary)')) {
+//         // If currently showing Gemini summary, we cannot change units.
+//         alert('Cannot change temperature units for AI-generated text summary. Please search a known city first.');
+//         unit = (unit === 'C') ? 'F' : 'C'; // Revert unit change
+//         unitToggle.querySelector('span').textContent = (unit === 'C') ? 'Switch to °F' : 'Switch to °C';
+//     }
+// });
+
+// // Navigation logic (simple visibility toggle, as all data is on one page)
+// document.querySelectorAll('.nav-item').forEach(button => {
+//     button.addEventListener('click', (e) => {
+//         const section = e.currentTarget.getAttribute('data-section');
+//         
+//         // Remove active class from all
+//         document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active-nav-item'));
+//         // Add active class to current
+//         e.currentTarget.classList.add('active-nav-item');
+
+//         // Hide/Show sections based on the active tab (Optional - you can choose to show all)
+//         document.getElementById('todayDetailsSection').style.display = (section === 'TODAY' || section === 'HOURLY' || section === 'WEEKLY') ? 'grid' : 'none'; // Today is the main view
+//         document.getElementById('hourlyForecastSection').style.display = (section === 'HOURLY' || section === 'TODAY') ? 'block' : 'none';
+//         document.getElementById('weeklyForecastSection').style.display = (section === 'WEEKLY' || section === 'TODAY') ? 'block' : 'none';
+//         
+//         // Scroll to the relevant section if on mobile
+//         if (window.innerWidth < 1024) {
+//              const target = document.getElementById(section === 'TODAY' ? 'todayDetailsSection' : (section === 'HOURLY' ? 'hourlyForecastSection' : 'weeklyForecastSection'));
+//              if (target) {
+//                 target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+//              }
+//         }
+//     });
+// });
+
+// // --- 9. INITIALIZATION ---
+
+// window.onload = () => {
+//     // Initial UI setup (custom CSS for glow, etc.)
+//     const style = document.createElement('style');
+//     style.textContent = `
+//         .lucide-icon-glow {
+//             filter: drop-shadow(0 0 5px #00eaff) drop-shadow(0 0 10px #00eaff);
+//         }
+//         .detail-metric {
+//             padding: 1rem;
+//             border-radius: 0.5rem;
+//             background-color: rgba(5, 10, 15, 0.5); /* aurora-bg/50 */
+//             border: 1px solid rgba(0, 255, 255, 0.1); /* aurora-frame/10 */
+//             transition: all 0.3s ease;
+//         }
+//         .detail-metric:hover {
+//             background-color: rgba(0, 40, 60, 0.7);
+//             border-color: #00eaff;
+//         }
+//         .nav-item {
+//             display: flex;
+//             align-items: center;
+//             gap: 0.5rem;
+//             padding: 0.75rem;
+//             border-radius: 0.5rem;
+//             text-decoration: none;
+//             color: #ccc;
+//             transition: all 0.3s ease;
+//             cursor: pointer;
+//         }
+//         .nav-item:hover {
+//             color: #fff;
+//             background-color: rgba(0, 255, 255, 0.1);
+//         }
+//         .active-nav-item {
+//             color: #00eaff;
+//             background-color: rgba(0, 255, 255, 0.2);
+//             font-weight: bold;
+//         }
+//         /* Fix for Leaflet dark theme */
+//         #weatherMap {
+//             filter: invert(90%) hue-rotate(180deg);
+//         }
+//     `;
+//     document.head.appendChild(style);
+//     
+//     // Load default city weather
+//     fetchAllWeatherData(DEFAULT_CITY);
+// };
+// script.js (Final Frontend Code with Gemini Parsing Fix)
+
+const API_KEY = "de414a9b4341a549efd4b962de804908"; 
+const BASE_WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather";
+const BASE_FORECAST_URL = "https://api.openweathermap.org/data/2.5/forecast";
+const DEFAULT_CITY = "New York";
+
+// >>> [Fix: Proper Proxy Server URL] <<<
+const GEMINI_PROXY_URL = "http://localhost:3000/api/chat"; 
+
+let unit = 'C'; // Default unit is Celsius
+let currentLat = 40.7128; // Default New York Lat
+let currentLon = -74.0060; // Default New York Lon
+
+// --- 2. DOM ELEMENT REFERENCES ---
 const cityNameEl = document.getElementById('cityName');
-const temperatureEl = document.getElementById('temperature');
-const currentDateEl = document.getElementById('currentDate'); 
-const currentTimeEl = document.getElementById('currentTime'); 
+const currentDateEl = document.getElementById('currentDate');
+const currentTimeEl = document.getElementById('currentTime');
+const searchCityInput = document.getElementById('searchCityInput');
+const searchCityButton = document.getElementById('searchCityButton');
+const errorMsgEl = document.getElementById('errorMsg');
+const unitToggle = document.getElementById('unitToggle');
+
+// Main Content Elements
+const tempEl = document.getElementById('temperature');
 const descriptionEl = document.getElementById('description');
 const feelsLikeEl = document.getElementById('feelsLike');
 const humidityEl = document.getElementById('humidity');
 const windSpeedEl = document.getElementById('windSpeed');
 const pressureEl = document.getElementById('pressure');
 const aqiIndexEl = document.getElementById('aqiIndex');
-const uvIndexEl = document.getElementById('uvIndex');
 const aqiDescriptionEl = document.getElementById('aqiDescription');
+const uvIndexEl = document.getElementById('uvIndex');
 const uvAdviceEl = document.getElementById('uvAdvice');
-const weatherIconEl = document.getElementById('weatherIcon');
-const hourlyForecastContainer = document.getElementById('hourlyForecastContainer');
-const dailyForecastContainer = document.getElementById('dailyForecastContainer');
-const searchCityInput = document.getElementById('searchCityInput'); 
-const searchCityButton = document.getElementById('searchCityButton'); 
-const errorMsg = document.getElementById('errorMsg');
 
-// ⭐ SCROLL TARGETS from HTML
-const hourlyTabButton = document.getElementById('hourlyTabButton');
-const dailyTabButton = document.getElementById('dailyTabButton');
-const hourlyForecastSection = document.getElementById('hourlyForecastSection');
-const weeklyForecastSection = document.getElementById('weeklyForecastSection');
+// Forecast Elements
+const hourlyContainer = document.getElementById('hourlyForecastContainer');
+const dailyContainer = document.getElementById('dailyForecastContainer');
 
+// --- 3. HELPER FUNCTIONS ---
 
-// ======================================================================
-// === 2. UTILITY & UI UPDATE FUNCTIONS ===
-// ======================================================================
-
-const getAqiDescription = (aqiIndex) => {
-    const index = parseInt(aqiIndex);
-    if (isNaN(index)) return { description: 'N/A', classes: 'bg-gray-500 text-white' };
-
-    if (index <= 50) return { description: 'Good (Accha)', classes: 'bg-green-500 text-white' };
-    if (index <= 100) return { description: 'Moderate (Theek)', classes: 'bg-yellow-500 text-gray-900' };
-    if (index <= 150) return { description: 'Unhealthy for Sensitive Groups (Nuksaandeh)', classes: 'bg-orange-500 text-white' };
-    if (index <= 200) return { description: 'Unhealthy (Kharab)', classes: 'bg-red-500 text-white' };
-    if (index <= 300) return { description: 'Very Unhealthy (Bahut Kharab)', classes: 'bg-purple-600 text-white' };
-    return { description: 'Hazardous (Khatarnaak)', classes: 'bg-red-700 text-white' };
+// Temperature conversion
+const convertTemp = (temp, currentUnit) => {
+    if (currentUnit === 'C') {
+        // Convert Kelvin to Celsius (K - 273.15)
+        return Math.round(temp - 273.15); 
+    } else {
+        // Convert Kelvin to Fahrenheit ((K - 273.15) * 9/5 + 32)
+        return Math.round(((temp - 273.15) * 9 / 5) + 32); 
+    }
 };
 
-const getUVAdvice = (uvIndex) => {
-    const index = parseFloat(uvIndex);
-    if (isNaN(index)) return 'UV data not available.';
-
-    if (index <= 2) return 'Low: Protection not needed.';
-    if (index <= 5) return 'Moderate: Wear sun protection.';
-    if (index <= 7) return 'High: Seek shade and wear protection.';
-    if (index <= 10) return 'Very High: Avoid midday sun.';
-    return 'Extreme: Take all precautions.';
+// Weather condition to Lucide Icon mapping
+const getWeatherIcon = (condition) => {
+    condition = condition.toLowerCase();
+    if (condition.includes('clear')) return 'sun';
+    if (condition.includes('cloud') || condition.includes('overcast') || condition.includes('partly cloudy')) return 'cloud';
+    if (condition.includes('rain') || condition.includes('drizzle')) return 'cloud-rain';
+    if (condition.includes('thunderstorm')) return 'cloud-lightning';
+    if (condition.includes('snow')) return 'cloud-snow';
+    if (condition.includes('mist') || condition.includes('fog') || condition.includes('haze')) return 'cloud-fog';
+    return 'thermometer'; // Default icon
 };
 
-const updateClock = () => {
-    const now = new Date();
-    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true }; 
-
-    if (currentDateEl) currentDateEl.textContent = now.toLocaleDateString(undefined, dateOptions);
-    if (currentTimeEl) currentTimeEl.textContent = now.toLocaleTimeString(undefined, timeOptions);
+// UV Index Advice (Simplified)
+const getUVAdvice = (index) => {
+    index = parseFloat(index);
+    if (isNaN(index)) return 'N/A';
+    if (index < 3) return 'Low';
+    if (index < 6) return 'Moderate';
+    if (index < 8) return 'High';
+    if (index < 11) return 'Very High';
+    return 'Extreme';
 };
 
-const formatTemperature = (tempBase, unitSymbol) => {
-    let displayTemp;
-    const baseTempCelsius = parseFloat(tempBase);
-
-    // Assume input temperature is Celsius unless explicitly converted elsewhere
-    let tempC = baseTempCelsius; 
-    
-    if (isNaN(tempC)) return 'N/A'; 
-
-    if (currentUnit === 'celsius') {
-        displayTemp = tempC;
-        unitSymbol = '°C';
-    } else {
-        // Convert Celsius to Fahrenheit
-        displayTemp = (tempC * 9/5) + 32;
-        unitSymbol = '°F';
-    }
-    return `${displayTemp.toFixed(0)}${unitSymbol}`; 
-};
-
-const getWeatherIconName = (description) => {
-    const desc = (description || '').toLowerCase();
-    if (desc.includes('sun') || desc.includes('clear')) return { icon: 'sun' };
-    if (desc.includes('cloud') || desc.includes('overcast')) return { icon: 'cloud' };
-    if (desc.includes('rain') || desc.includes('drizzle')) return { icon: 'cloud-rain' };
-    if (desc.includes('thunder') || desc.includes('storm')) return { icon: 'cloud-lightning' };
-    if (desc.includes('snow') || desc.includes('freezing')) return { icon: 'snowflake' };
-    if (desc.includes('mist') || desc.includes('haze') || desc.includes('fog')) return { icon: 'cloud-fog' };
-    if (desc.includes('partly')) return { icon: 'cloud-sun' };
-    return { icon: 'thermometer' }; 
-};
-
-const showMessage = (message, isError = true) => {
-    if (!errorMsg) return;
-    errorMsg.textContent = message;
-    errorMsg.classList.toggle('hidden', !message);
-    errorMsg.classList.toggle('text-red-400', isError);
-    errorMsg.classList.toggle('text-green-400', !isError);
-};
-
-const smoothScrollTo = (element) => {
-    if (element) {
-        element.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start' 
-        });
-    }
-};
-
-const clearWeatherUI = (isInitial = false) => {
-    currentWeatherData = null;
-
-    cityNameEl.textContent = '...';
-    temperatureEl.textContent = '...';
-    descriptionEl.textContent = '...';
-    feelsLikeEl.textContent = '...';
-    
-    humidityEl.textContent = 'N/A';
-    windSpeedEl.textContent = 'N/A';
-    pressureEl.textContent = 'N/A';
-    aqiIndexEl.textContent = 'N/A';
-
-    aqiDescriptionEl.textContent = '...';
-    aqiDescriptionEl.className = 'aqi-pill py-1 px-3 rounded-full text-white shadow-lg bg-gray-500';
-    uvAdviceEl.textContent = 'N/A';
-    uvIndexEl.textContent = 'N/A';
-    
-    weatherIconEl.innerHTML = `<i data-lucide="sun" class="lucide-icon-glow text-aurora-blue" style="width: 120px; height: 120px;"></i>`;
-
-    const placeholderText = isInitial ? 'Enter a city name to see the forecast.' : 'Forecast data N/A.';
-    hourlyForecastContainer.innerHTML = `<p id="hourlyPlaceholder" class="text-gray-500 text-center w-full">${placeholderText}</p>`;
-    dailyForecastContainer.innerHTML = `<p id="dailyPlaceholder" class="text-gray-500 text-center w-full">${placeholderText}</p>`;
-    showMessage("");
-    
-    if (mapInstance) { mapInstance.remove(); mapInstance = null; }
-    if (aqiChartInstance) { aqiChartInstance.destroy(); aqiChartInstance = null; }
-};
-
-const updateWeatherUI = (data, lat, lon) => {
-    if (!data) {
-        clearWeatherUI();
-        return;
-    }
-    
-    const currentTemp = parseFloat(data.temp.current);
-    // Use current temp as fallback for feelsLike if N/A
-    const feelsLikeTemp = parseFloat(data.temp.feelsLike !== 'N/A' ? data.temp.feelsLike : data.temp.current);
-
-    cityNameEl.textContent = data.city || 'Location Unknown';
-    temperatureEl.textContent = formatTemperature(currentTemp, '°C'); 
-    descriptionEl.textContent = data.description || 'N/A';
-    feelsLikeEl.textContent = formatTemperature(feelsLikeTemp, '°C');
-
-    const iconData = getWeatherIconName(data.description || '');
-    weatherIconEl.innerHTML = `<i data-lucide="${iconData.icon}" class="lucide-icon-glow text-aurora-blue" style="width: 120px; height: 120px;"></i>`;
-
-    humidityEl.textContent = data.details.humidity || 'N/A';
-    // Assuming windSpeed input is in m/s or km/h and stored with units
-    windSpeedEl.textContent = data.details.windSpeed || 'N/A'; 
-    pressureEl.textContent = data.details.pressure || 'N/A';
-    
-    const aqiInfo = getAqiDescription(data.details.aqiIndex || 'N/A');
-    aqiIndexEl.textContent = data.details.aqiIndex || 'N/A';
-    aqiDescriptionEl.textContent = aqiInfo.description;
-    aqiDescriptionEl.className = `aqi-pill py-1 px-3 rounded-full text-white shadow-lg ${aqiInfo.classes}`;
-    
-    uvIndexEl.textContent = data.details.uvIndex || 'N/A';
-    uvAdviceEl.textContent = getUVAdvice(data.details.uvIndex);
-    
-    displayForecast(hourlyForecastContainer, data.forecasts.hourly, true);
-    displayForecast(dailyForecastContainer, data.forecasts.daily, false);
-    
-    // ⭐ DYNAMIC CALLS: Pass dynamic lat/lon to renderMap
-    renderMap(lat, lon, data.city); 
-    renderAqiChart(data.details.aqiIndex);
-
-    if (typeof lucide !== 'undefined' && lucide.createIcons) {
-        lucide.createIcons();
-    }
-};
-
-const displayForecast = (container, forecastArray, isHourly) => {
-    container.innerHTML = '';
-    if (!forecastArray || forecastArray.length === 0) {
-        container.innerHTML = `<p class="text-gray-500 text-center w-full">Forecast data N/A.</p>`;
-        return;
-    }
-
-    const htmlContent = forecastArray.map(item => {
-        const timeOrDay = isHourly ? item.time : item.day;
-        const tempDisplay = isHourly 
-            ? formatTemperature(item.temp, '°C') 
-            : `${formatTemperature(item.tempMax, '°C')} / ${formatTemperature(item.tempMin, '°C')}`; 
-        
-        const iconData = getWeatherIconName(item.description);
-        
-        return `
-            <div class="flex-shrink-0 p-3 bg-aurora-dark/70 rounded-xl border border-aurora-frame/10 text-center transition duration-300 hover:bg-aurora-dark/90 ${isHourly ? 'w-28' : 'w-32'}">
-                <p class="text-sm font-medium text-gray-400">${timeOrDay}</p>
-                <div class="my-2"><i data-lucide="${iconData.icon}" class="text-aurora-blue mx-auto" style="width: ${isHourly ? '32px' : '40px'}; height: ${isHourly ? '32px' : '40px'};"></i></div>
-                <p class="${isHourly ? 'text-lg font-bold' : 'text-xl font-bold mt-1'}">${tempDisplay}</p>
-                ${!isHourly ? `<p class="text-xs text-gray-400 mt-0.5">${item.description.split(' ')[0]}</p>` : ''}
-            </div>
-        `;
-    }).join('');
-    
-    container.innerHTML = htmlContent;
-
-    if (typeof lucide !== 'undefined' && lucide.createIcons) {
-        lucide.createIcons();
-    }
+// AQI Color and Description (Mocked as real AQI requires different API)
+const getAqiInfo = (aqi) => {
+    if (aqi <= 50) return { desc: 'Good', color: 'bg-green-600' };
+    if (aqi <= 100) return { desc: 'Moderate', color: 'bg-yellow-600' };
+    if (aqi <= 150) return { desc: 'Unhealthy for Sensitive Groups', color: 'bg-orange-600' };
+    return { desc: 'Unhealthy', color: 'bg-red-600' };
 };
 
 
-// ======================================================================
-// === 3. MAP AND CHART RENDERING LOGIC ===
-// ======================================================================
+// --- 4. MAP AND CHART INITIALIZATION ---
 
-const renderMap = (lat, lon, city) => {
-    if (typeof L === 'undefined') {
-        console.error("Leaflet not loaded. Cannot render map.");
-        return;
-    }
+let map;
+let aqiChartInstance;
 
-    if (mapInstance) {
-        mapInstance.remove(); 
-    }
+// Initialize Leaflet Map
+const initMap = (lat, lon) => {
+    if (map) {
+        map.remove(); // Remove existing map instance
+    }
+    map = L.map('weatherMap', { zoomControl: false }).setView([lat, lon], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 18,
+    }).addTo(map);
 
-    const mapElement = document.getElementById('weatherMap');
-    if (!mapElement) return;
-
-    mapInstance = L.map('weatherMap').setView([lat, lon], 13);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19
-    }).addTo(mapInstance);
-
-    L.marker([lat, lon]).addTo(mapInstance)
-        .bindPopup(`<b>${city}</b><br>Current location.`)
-        .openPopup();
-    
-    setTimeout(() => {
-        if (mapInstance) mapInstance.invalidateSize();
-    }, 100);
-    
-    mapInstance.on('remove', () => { mapInstance = null; });
+    L.marker([lat, lon]).addTo(map);
 };
 
-const renderAqiChart = (currentAqiIndex) => {
-    if (typeof Chart === 'undefined') {
-        return;
-    }
+// Initialize Chart.js Chart
+const initAqiChart = (aqiData) => {
+    const ctx = document.getElementById('aqiChart').getContext('2d');
+    
+    // Destroy previous chart instance if exists
+    if (aqiChartInstance) {
+        aqiChartInstance.destroy();
+    }
 
-    const ctx = document.getElementById('aqiChart');
-    if (!ctx) return;
-
-    if (aqiChartInstance) {
-        aqiChartInstance.destroy(); 
-    }
-    
-    const baseAqi = parseFloat(currentAqiIndex) || 100;
-    const mockData = [baseAqi - 10, baseAqi + 5, baseAqi, baseAqi - 5, baseAqi + 15];
-
-    aqiChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['Day -2', 'Day -1', 'Today', 'Tomorrow', 'Day +2'],
-            datasets: [{
-                label: 'AQI Level',
-                data: mockData,
-                borderColor: '#00eaff',
-                backgroundColor: 'rgba(0, 234, 255, 0.2)',
-                borderWidth: 2,
-                tension: 0.4,
-                fill: true,
-                pointBackgroundColor: '#00eaff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    min: Math.min(...mockData) - 10,
-                    max: Math.max(...mockData) + 10,
-                    title: { display: false },
-                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                    ticks: { color: '#bbb' }
-                },
-                x: {
-                    grid: { display: false },
-                    ticks: { color: '#bbb' }
-                }
-            },
-            plugins: {
-                legend: { display: false },
-                title: { display: false }
-            }
-        }
-    });
+    aqiChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: aqiData.labels,
+            datasets: [{
+                label: 'AQI',
+                data: aqiData.data,
+                borderColor: '#00eaff',
+                backgroundColor: 'rgba(0, 234, 255, 0.1)',
+                borderWidth: 2,
+                pointBackgroundColor: '#00eaff',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { mode: 'index', intersect: false }
+            },
+            scales: {
+                x: { ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                y: { min: 0, ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+            }
+        }
+    });
 };
 
 
-// ======================================================================
-// === 4. DATA FETCHING AND PARSING LOGIC ===
-// ======================================================================
+// --- 5. DATA FETCHERS ---
 
-const getCoordinatesForCity = async (city) => {
-    const defaultCoords = { lat: 27.1751, lon: 78.0421 }; // Agra, India
-    
-    if (cityCoordinatesCache[city]) {
-        return cityCoordinatesCache[city];
-    }
-    
-    if (!GEOCODING_API_KEY || GEOCODING_API_KEY === 'YOUR_GEOCODING_API_KEY') {
-        console.warn("Using default coordinates. Please set GEOCODING_API_KEY.");
-        return defaultCoords;
-    }
-
-    const geoUrl = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(city)}&key=${GEOCODING_API_KEY}&limit=1`;
-    
-    try {
-        const geoResponse = await fetch(geoUrl);
-        const geoData = await geoResponse.json();
-
-        if (geoData.results && geoData.results.length > 0) {
-            const coords = { 
-                lat: geoData.results[0].geometry.lat, 
-                lon: geoDataData.results[0].geometry.lng 
-            };
-            cityCoordinatesCache[city] = coords; 
-            return coords;
-        }
-    } catch (error) {
-        console.error("Geocoding Fetch Error:", error);
-    }
-
-    return defaultCoords;
+// Real time and date updates
+const updateTime = () => {
+    const now = new Date();
+    currentDateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    currentTimeEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 };
+setInterval(updateTime, 1000);
+updateTime(); // Initial call
 
-const parseWeatherReport = (text) => {
-    // This is a robust mock parser to handle the chatbot's text-based output
-    const normalizedText = (text || '').toLowerCase(); 
-    if (!normalizedText.includes('current weather') && 
-        !normalizedText.includes('details:')) {
-        return null; 
-    }
-    
-    const data = {
-        city: 'N/A',
-        temp: { current: 'N/A', feelsLike: 'N/A', unit: '°C' }, 
-        description: 'N/A',
-        details: { humidity: 'N/A', windSpeed: 'N/A', pressure: 'N/A', aqiIndex: 'N/A', uvIndex: 'N/A' },
-        forecasts: { hourly: [], daily: [] }
-    };
-    
-    // 1. Summary (City, Current Temp, Description)
-    const summaryMatch = text.match(/Current weather in\s*(.+?)\s*is\s*(\d+)(?:°C|°F|\s*C|\s*F)\s*and\s*([^.]+)/i);
-    const tempUnitMatch = text.match(/(\d+)(°C|°F|\s*C|\s*F)/i);
-    
-    if (summaryMatch) {
-        data.city = summaryMatch[1].trim();
-        data.temp.current = summaryMatch[2].trim();
-        data.description = summaryMatch[3].trim().replace(/[.,]$/g, ''); 
-    } else if (tempUnitMatch) {
-        data.temp.current = tempUnitMatch[1];
-    }
-
-    // 2. Details Block
-    const detailsBlockMatch = text.match(/Details\s*:\s*(.+)/i);
-    if (detailsBlockMatch) {
-        const detailsText = detailsBlockMatch[1];
-        
-        const getMatch = (label) => {
-            const regex = new RegExp(`${label}\\s*:\\s*([^,]+?)`, 'i');
-            return detailsText.match(regex)?.[1]?.trim().replace(/[.,]$/g, '') || 'N/A';
-        };
-
-        data.details.humidity = getMatch('Humidity');
-        data.details.windSpeed = getMatch('Wind speed');
-        data.details.pressure = getMatch('Pressure');
-        
-        const uvFull = getMatch('UV Index');
-        data.details.uvIndex = uvFull.split(' ')[0] || 'N/A'; 
-        
-        const aqiFull = getMatch('Air Quality');
-        if (aqiFull !== 'N/A') {
-            data.details.aqiIndex = aqiFull.match(/\((\d+)\)/)?.[1] || aqiFull.match(/(\d+)/)?.[1] || 'N/A';
-        }
-    }
-    
-    if (data.temp.current !== 'N/A' && data.temp.feelsLike === 'N/A') {
-        data.temp.feelsLike = data.temp.current; 
-    }
-    
-    // --- Mock Forecast Data (Crucial for UI) ---
-    if (data.temp.current !== 'N/A' && !isNaN(parseFloat(data.temp.current))) {
-        const baseTemp = parseFloat(data.temp.current);
-        const desc = data.description !== 'N/A' ? data.description : 'clear sky';
-        
-        // Mock Hourly
-        const hourlyTimes = [12, 15, 18, 21, 24]; 
-        data.forecasts.hourly = hourlyTimes.map((h, index) => {
-            const tempChange = index > 2 ? -1 : index % 2; 
-            let timeLabel = h === 12 ? '12 PM' : h === 24 ? '12 AM' : `${h % 12} PM`;
-            if (h < 12) timeLabel = `${h} AM`;
-
-            return { time: timeLabel, temp: baseTemp + tempChange, description: index > 2 ? 'partly cloudy' : desc };
-        });
-
-        // Mock Daily
-        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const todayIndex = new Date().getDay(); 
-        data.forecasts.daily = [];
-
-        for (let i = 1; i <= 5; i++) {
-            const nextDayIndex = (todayIndex + i) % 7;
-            const dayLabel = days[nextDayIndex];
-            
-            const tempMax = baseTemp + (4 - (i / 2));
-            const tempMin = baseTemp - (3 + (i / 2));
-
-            let dayDesc = 'Clouds';
-            if (i === 1) dayDesc = 'Partly Cloudy';
-            if (i === 3) dayDesc = 'Rain';
-            if (i === 5) dayDesc = 'Clear Sky';
-
-            data.forecasts.daily.push({ 
-                day: dayLabel, 
-                tempMax: tempMax, 
-                tempMin: tempMin, 
-                description: dayDesc 
-            });
-        }
-    }
-    
-    if (data.temp.current === 'N/A' && data.city === 'N/A') return null;
-    return data;
-};
-
-async function callWeatherApi(cityQuery) {
-    try {
-        const response = await fetch(WEATHER_API_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                message: cityQuery,
-                history: []
-            })
-        });
-
-        if (!response.ok) {
-            let errorDetails = `Server returned status ${response.status}.`;
-            const errorData = await response.json().catch(() => ({})); 
-            if (errorData.botText) {
-                errorDetails = errorData.botText; 
-            }
-            throw new Error(`Connection Error: ${errorDetails}`);
-        }
-        
-        const data = await response.json(); 
-        return data; 
-    } catch (error) {
-        throw new Error(error.message);
-    }
+// Fetch main weather data (Current, Feels Like, Wind, Pressure, etc.)
+async function fetchCurrentWeather(city) {
+    if (API_KEY === "YOUR_API_KEY_HERE" || API_KEY.length < 10) {
+        throw new Error("API Key not configured. Please get an OpenWeatherMap API key and replace it in script.js.");
+    }
+    const url = `${BASE_WEATHER_URL}?q=${city}&appid=${API_KEY}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Could not fetch current weather for ${city}. Status: ${response.status}`);
+    }
+    return response.json();
 }
 
-const handleSearchSubmit = async () => {
-    const cityQuery = searchCityInput.value.trim();
-    if (cityQuery === '') {
-        showMessage("Kripya shehar ka naam darj karein. 🤔", true);
-        return;
-    }
+// Fetch forecast data (Hourly and Daily)
+async function fetchForecast(city) {
+    const url = `${BASE_FORECAST_URL}?q=${city}&appid=${API_KEY}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+        console.warn(`Could not fetch forecast for ${city}. Status: ${response.status}`);
+        return null; 
+    }
+    return response.json();
+}
 
-    searchCityButton.disabled = true;
-    searchCityInput.disabled = true;
-    showMessage(`Fetching weather for ${cityQuery}... ⏳`, false);
+// Fetch mock AQI data 
+function getMockAqiData() {
+    return {
+        index: Math.floor(Math.random() * 150) + 10, // Mock AQI value
+        chart: {
+            labels: ['1AM', '4AM', '7AM', '10AM', '1PM', '4PM', '7PM'],
+            data: [55, 60, 45, 70, 80, 75, 65] 
+        },
+        uvIndex: Math.floor(Math.random() * 11) + 1 // Mock UV index
+    };
+}
 
-    const { lat, lon } = await getCoordinatesForCity(cityQuery);
 
-    try {
-        // Step 1: Call API (to a local server endpoint)
-        const responseData = await callWeatherApi(cityQuery);
-        const botText = responseData.botText || ''; 
-        
-        // Step 2: Parse Chatbot's Text Output
-        const weatherData = parseWeatherReport(botText); 
-        
-        if (weatherData) {
-            currentWeatherData = weatherData; 
-            // Step 3: Update UI
-            updateWeatherUI(weatherData, lat, lon); 
-            showMessage(`Weather successfully displayed for ${weatherData.city}. ✅`, false);
+// >>> [FIXED: Gemini API Fallback Function with Parsing] <<<
 
-            smoothScrollTo(weatherContent); 
+// Helper function to extract structured details from Gemini text
+const parseGeminiDetails = (text) => {
+    const details = {};
+    const detailsMatch = text.match(/Details:\s*([^.]*)/i); // Extract everything after 'Details:'
+    
+    if (detailsMatch && detailsMatch[1]) {
+        // Split by comma and process each key:value pair
+        const parts = detailsMatch[1].split(',').map(p => p.trim());
+        
+        parts.forEach(part => {
+            const [key, value] = part.split(':').map(s => s.trim());
+            if (key && value) {
+                // Normalize key for easy access (e.g., 'Wind speed' -> 'windspeed')
+                details[key.toLowerCase().replace(/\s/g, '')] = value;
+            }
+        });
+    }
+    
+    // Extract Temperature and Description from the summary part before 'Details:'
+    const summaryMatch = text.match(/(Current weather in [^,]+, [^ ]+.*)\s+Details:/i);
+    if (summaryMatch && summaryMatch[1]) {
+        // Extract temperature (e.g., "28°C")
+        const tempMatch = summaryMatch[1].match(/is\s*([0-9.]+°[CF])/i);
+        // Extract description (e.g., "partly cloudy") - must be in English from system instruction
+        const descMatch = summaryMatch[1].match(/and\s*([a-zA-Z\s]+)\./i); 
+        
+        details.temperature = tempMatch ? tempMatch[1] : 'N/A';
+        details.description = descMatch ? descMatch[1].trim() : 'N/A';
+    }
 
-        } else {
-            showMessage(`Mausam ki jaankari nahi mil saki. Server response: "${botText}"`, true);
-            clearWeatherUI();
-        }
-    } 
-    catch (error) {
-        console.error("Weather Fetch Error:", error);
-        showMessage(`Error fetching data: ${error.message} 🛑`, true);
-        clearWeatherUI();
-    }
-    finally {
-        searchCityButton.disabled = false;
-        searchCityInput.disabled = false;
-        searchCityInput.focus();
-    }
+    return details;
 };
-// ======================================================================
-// === 5. EVENT LISTENERS AND INITIAL SETUP ===
-// ======================================================================
-// Toggle Celsius/Fahrenheit
-if (unitToggle) {
-    unitToggle.addEventListener('click', () => {
-        const spanEl = unitToggle.querySelector('span');
-        if (currentUnit === 'celsius') {
-            currentUnit = 'fahrenheit';
-            spanEl.textContent = 'Switch to °C';
-        } else {
-            currentUnit = 'celsius';
-            spanEl.textContent = 'Switch to °F';
-        }
-        // Re-render UI with saved data and new unit
-        if (currentWeatherData) {
-            const city = currentWeatherData.city;
-            const { lat, lon } = cityCoordinatesCache[city] || { lat: 27.1751, lon: 78.0421 };
-            updateWeatherUI(currentWeatherData, lat, lon); 
-        }
-    });
+
+async function fetchWeatherFallbackFromGemini(city) {
+    try {
+        const response = await fetch(GEMINI_PROXY_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            // The server expects the city name in the 'message' field
+            body: JSON.stringify({ message: city }), 
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Proxy Server Error: ${errorData.botText || errorData.error || 'Unknown error'}`);
+        }
+
+        const data = await response.json();
+        
+        // --- CRITICAL STEP: Parse the structured text from Gemini ---
+        const parsedDetails = parseGeminiDetails(data.botText);
+
+        return {
+            name: city, 
+            isGemini: true,
+            summary: data.botText, 
+            details: parsedDetails, // Parsed structure for UI update
+        };
+
+    } catch (error) {
+        console.error("Gemini Proxy Request Error:", error);
+        return {
+            isGemini: false,
+            error: error.message
+        };
+    }
 }
-// Search Functionality
-if (searchCityButton && searchCityInput) {
-    searchCityButton.addEventListener('click', handleSearchSubmit);
-    searchCityInput.addEventListener('keypress', (event) => {
-        if (event.key === 'Enter') {
-            handleSearchSubmit();
-        }
-    });
+
+
+// --- 6. RENDER FUNCTIONS ---
+
+// Render main current weather details (for OWM data)
+const renderCurrentWeather = (data) => {
+    const tempC = convertTemp(data.main.temp, 'C');
+    const feelsLikeC = convertTemp(data.main.feels_like, 'C');
+
+    currentLat = data.coord.lat;
+    currentLon = data.coord.lon;
+    
+    // Main Section Update
+    cityNameEl.textContent = `${data.name}, ${data.sys.country}`;
+    tempEl.textContent = `${unit === 'C' ? tempC : convertTemp(data.main.temp, 'F')}°${unit}`;
+    descriptionEl.textContent = data.weather[0].description;
+    feelsLikeEl.textContent = `${unit === 'C' ? feelsLikeC : convertTemp(data.main.feels_like, 'F')}°${unit}`;
+
+    // Icon Update
+    const iconName = getWeatherIcon(data.weather[0].main);
+    document.getElementById('weatherIcon').innerHTML = `<i data-lucide="${iconName}" class="lucide-icon-glow" style="width: 120px; height: 120px;"></i>`;
+    lucide.createIcons();
+    
+    // Metrics Update
+    humidityEl.textContent = `${data.main.humidity}%`;
+    windSpeedEl.textContent = `${(data.wind.speed * 3.6).toFixed(1)} km/h`; // m/s to km/h
+    pressureEl.textContent = `${data.main.pressure} hPa`;
+    
+    // Mock AQI/UV Data Update (since OWM doesn't provide these easily)
+    const aqiData = getMockAqiData();
+    const aqiInfo = getAqiInfo(aqiData.index);
+
+    aqiIndexEl.textContent = aqiData.index;
+    aqiDescriptionEl.textContent = `Air Quality: ${aqiInfo.desc}`;
+    aqiDescriptionEl.className = `aqi-pill py-1 px-3 rounded-full text-white shadow-lg ${aqiInfo.color}`;
+
+    uvIndexEl.textContent = aqiData.uvIndex;
+    uvAdviceEl.textContent = `(${getUVAdvice(aqiData.uvIndex)})`;
+
+    // Map and Chart Update
+    initMap(currentLat, currentLon);
+    initAqiChart(aqiData.chart);
+
+    errorMsgEl.classList.add('hidden');
+};
+
+// >>> [FIXED: Gemini Fallback Render Function] <<<
+const renderGeminiFallback = (data) => {
+    // Icon: AI Summary
+    document.getElementById('weatherIcon').innerHTML = `<i data-lucide="sparkles" class="lucide-icon-glow" style="width: 120px; height: 120px;"></i>`;
+    lucide.createIcons();
+    
+    const details = data.details || {};
+    
+    // 1. Main Section Update
+    cityNameEl.textContent = `${data.name} (AI Summary)`; 
+    
+    // 2. Display Parsed Temperature and Description
+    // We display Gemini's output as is, as we cannot reliably convert its text temp (e.g., 28°C) to F
+    tempEl.textContent = details.temperature || 'AI Data'; 
+    
+    // Display the full description/summary in the description area
+    descriptionEl.innerHTML = `<span class="text-lg text-yellow-300 font-normal">
+        ${details.description || data.summary || 'Summary not available.'}
+    </span>`;
+    feelsLikeEl.textContent = `N/A`; // Gemini doesn't reliably provide feels like
+
+    // 3. Metrics Update using Parsed Data
+    humidityEl.textContent = details.humidity || `N/A`;
+    windSpeedEl.textContent = details.windspeed || `N/A`;
+    pressureEl.textContent = details.pressure || `N/A`;
+    
+    // AQI Update (Parse AQI index and description from Air Quality: Moderate (105))
+    const aqiMatch = details.airquality ? details.airquality.match(/^([^ (]+)\s*\(([^)]+)\)/) : null;
+    const aqiDescText = aqiMatch ? aqiMatch[1] : 'N/A'; // e.g., Moderate
+    const aqiValue = aqiMatch ? aqiMatch[2] : 'N/A'; // e.g., 105
+    
+    aqiIndexEl.textContent = aqiValue;
+    
+    // Use aqiValue for color if numeric, otherwise default to grey
+    const aqiInfo = getAqiInfo(parseInt(aqiValue) || 200); 
+    aqiDescriptionEl.textContent = `Air Quality: ${aqiDescText}`;
+    aqiDescriptionEl.className = `aqi-pill py-1 px-3 rounded-full text-white shadow-lg ${aqiValue === 'N/A' ? 'bg-gray-600' : aqiInfo.color}`;
+
+    // UV Update
+    uvIndexEl.textContent = details.uvindex || 'N/A';
+    uvAdviceEl.textContent = `(${getUVAdvice(details.uvindex || 0)})`;
+
+    // 4. Map and Chart initialization will use default/current values or can be cleared
+    initMap(currentLat, currentLon); 
+    initAqiChart({ labels: [], data: [] }); 
+
+    errorMsgEl.textContent = 'Weather API failed to find the city. Using Gemini AI for general weather summary with parsed details.';
+    errorMsgEl.classList.remove('hidden');
+};
+
+// Render hourly forecast
+const renderHourlyForecast = (data) => {
+    hourlyContainer.innerHTML = ''; // Clear previous content
+    
+    const hourlyList = data.list.slice(0, 5); 
+
+    if (hourlyList.length === 0) {
+        hourlyContainer.innerHTML = '<p class="text-gray-500 text-center w-full">No hourly data available.</p>';
+        return;
+    }
+
+    hourlyList.forEach(item => {
+        const time = new Date(item.dt * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const temp = unit === 'C' ? convertTemp(item.main.temp, 'C') : convertTemp(item.main.temp, 'F');
+        const iconName = getWeatherIcon(item.weather[0].main);
+
+        const hourlyCard = document.createElement('div');
+        hourlyCard.className = 'w-24 p-3 rounded-xl border border-aurora-frame/50 bg-aurora-dark/50 flex flex-col items-center flex-shrink-0 transition-transform duration-300 hover:scale-105 hover:border-aurora-blue/50';
+        hourlyCard.innerHTML = `
+            <p class="text-sm font-semibold">${time}</p>
+            <i data-lucide="${iconName}" class="w-6 h-6 my-2 text-aurora-blue lucide-icon-glow"></i>
+            <p class="text-lg font-bold">${temp}°${unit}</p>
+            <p class="text-xs text-gray-400 capitalize">${item.weather[0].description}</p>
+        `;
+        hourlyContainer.appendChild(hourlyCard);
+    });
+    lucide.createIcons(); // Re-render icons
+};
+
+// Render daily (weekly) forecast
+const renderDailyForecast = (data) => {
+    dailyContainer.innerHTML = ''; // Clear previous content
+    
+    const dailyData = {};
+    const today = new Date().toDateString();
+
+    data.list.forEach(item => {
+        const date = new Date(item.dt * 1000);
+        const dayString = date.toDateString();
+
+        if (dayString !== today && Object.keys(dailyData).length < 5) {
+             // Only save if it's the first reading for the day
+            if (!dailyData[dayString]) {
+                dailyData[dayString] = {
+                    day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+                    temp_max: item.main.temp_max,
+                    temp_min: item.main.temp_min,
+                    icon: getWeatherIcon(item.weather[0].main)
+                };
+            } else {
+                // Update max/min for the day
+                dailyData[dayString].temp_max = Math.max(dailyData[dayString].temp_max, item.main.temp_max);
+                dailyData[dayString].temp_min = Math.min(dailyData[dayString].temp_min, item.main.temp_min);
+            }
+        }
+    });
+
+    Object.values(dailyData).forEach(day => {
+        const maxTemp = unit === 'C' ? convertTemp(day.temp_max, 'C') : convertTemp(day.temp_max, 'F');
+        const minTemp = unit === 'C' ? convertTemp(day.temp_min, 'C') : convertTemp(day.temp_min, 'F');
+
+        const dailyCard = document.createElement('div');
+        dailyCard.className = 'w-32 p-3 rounded-xl border border-aurora-frame/50 bg-aurora-dark/50 flex flex-col items-center flex-shrink-0 transition-transform duration-300 hover:scale-105 hover:border-aurora-blue/50';
+        dailyCard.innerHTML = `
+            <p class="text-sm font-semibold">${day.day}</p>
+            <i data-lucide="${day.icon}" class="w-8 h-8 my-2 text-aurora-blue lucide-icon-glow"></i>
+            <p class="text-lg font-bold">${maxTemp}°${unit}</p>
+            <p class="text-sm text-gray-400">Low: ${minTemp}°${unit}</p>
+        `;
+        dailyContainer.appendChild(dailyCard);
+    });
+    lucide.createIcons(); // Re-render icons
+};
+
+// --- 7. MAIN CONTROLLER ---
+
+async function fetchAllWeatherData(city) {
+    // Initial loading state setup...
+    errorMsgEl.classList.add('hidden');
+    errorMsgEl.textContent = '';
+    tempEl.textContent = '...';
+    descriptionEl.textContent = 'Fetching data...';
+    hourlyContainer.innerHTML = '<p class="text-gray-400 text-center w-full">Loading hourly...</p>';
+    dailyContainer.innerHTML = '<p class="text-gray-400 text-center w-full">Loading weekly...</p>';
+
+
+    try {
+        // 1. Attempt OpenWeatherMap Call
+        const currentData = await fetchCurrentWeather(city);
+        renderCurrentWeather(currentData);
+
+        // 2. Fetch Forecast (If OWM succeeded)
+        const forecastData = await fetchForecast(city);
+        if (forecastData) {
+            renderHourlyForecast(forecastData);
+            renderDailyForecast(forecastData);
+        } else {
+            hourlyContainer.innerHTML = '<p class="text-gray-500 text-center w-full">Hourly forecast data unavailable.</p>';
+            dailyContainer.innerHTML = '<p class="text-gray-500 text-center w-full">Weekly forecast data unavailable.</p>';
+        }
+
+    } catch (error) {
+        console.warn(`OWM failed for ${city}: ${error.message}. Attempting Gemini fallback.`);
+        
+        // 3. OWM Failed: Attempt Gemini Fallback
+        const geminiResult = await fetchWeatherFallbackFromGemini(city);
+
+        if (geminiResult.isGemini) {
+            // Gemini succeeded: Render the summary with parsed metrics
+            renderGeminiFallback(geminiResult); 
+            // Forecast is unavailable with AI summary
+            hourlyContainer.innerHTML = '<p class="text-yellow-400 text-center w-full">Hourly forecast not available with AI summary.</p>';
+            dailyContainer.innerHTML = '<p class="text-yellow-400 text-center w-full">Weekly forecast not available with AI summary.</p>';
+        } else {
+            // Both OWM and Gemini failed
+            console.error("Fatal Error: Both APIs failed.", geminiResult.error);
+            errorMsgEl.textContent = `Error: City not found, and AI fallback failed. Details: ${geminiResult.error || error.message}`;
+            errorMsgEl.classList.remove('hidden');
+            
+            // Reset display on error
+            cityNameEl.textContent = 'Location Error';
+            tempEl.textContent = 'N/A';
+            descriptionEl.textContent = 'Failed to load weather data.';
+            hourlyContainer.innerHTML = '<p class="text-red-400 text-center w-full">Error loading data.</p>';
+            dailyContainer.innerHTML = '<p class="text-red-400 text-center w-full">Error loading data.</p>';
+        }
+    }
 }
-// ⭐ SCROLLING LOGIC FOR HOURLY
-if (hourlyTabButton && hourlyForecastSection) {
-    hourlyTabButton.addEventListener('click', () => {
-        smoothScrollTo(hourlyForecastSection); 
-    });
-}
-//  SCROLLING LOGIC FOR DAILY/WEEKLY
-if (dailyTabButton && weeklyForecastSection) {
-    dailyTabButton.addEventListener('click', () => {
-        smoothScrollTo(weeklyForecastSection);
-    });
-}
-// Initial Load and Clock Setup
+
+
+// --- 8. EVENT LISTENERS ---
+
+// Search button click or Enter key press
+searchCityButton.addEventListener('click', () => {
+    const city = searchCityInput.value.trim();
+    if (city) {
+        fetchAllWeatherData(city);
+    }
+});
+
+searchCityInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        searchCityButton.click();
+    }
+});
+
+// Unit Toggle
+unitToggle.addEventListener('click', () => {
+    // Only allow unit change if OWM data is currently displayed
+    const currentCityText = cityNameEl.textContent.trim();
+    if (!currentCityText.includes('(AI Summary)') && currentCityText !== 'Location Error') {
+        
+        unit = (unit === 'C') ? 'F' : 'C';
+        unitToggle.querySelector('span').textContent = (unit === 'C') ? 'Switch to °F' : 'Switch to °C';
+        
+        // Re-fetch/Re-render data to apply new unit
+        // We need to re-fetch to get correct OWM data based on the original city name
+        const cityParts = currentCityText.split(',')[0].trim();
+        fetchAllWeatherData(cityParts); 
+        
+    } else {
+        // Cannot change units for AI summary
+        alert('Cannot change temperature units for AI-generated text summary. Please search a known city first.');
+    }
+});
+
+// Navigation logic 
+document.querySelectorAll('.nav-item').forEach(button => {
+    button.addEventListener('click', (e) => {
+        const section = e.currentTarget.getAttribute('data-section');
+        
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active-nav-item'));
+        e.currentTarget.classList.add('active-nav-item');
+
+        document.getElementById('todayDetailsSection').style.display = (section === 'TODAY' || section === 'HOURLY' || section === 'WEEKLY') ? 'grid' : 'none'; 
+        document.getElementById('hourlyForecastSection').style.display = (section === 'HOURLY' || section === 'TODAY') ? 'block' : 'none';
+        document.getElementById('weeklyForecastSection').style.display = (section === 'WEEKLY' || section === 'TODAY') ? 'block' : 'none';
+        
+        if (window.innerWidth < 1024) {
+             const target = document.getElementById(section === 'TODAY' ? 'todayDetailsSection' : (section === 'HOURLY' ? 'hourlyForecastSection' : 'weeklyForecastSection'));
+             if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+             }
+        }
+    });
+});
+
+// --- 9. INITIALIZATION ---
+
 window.onload = () => {
-    updateClock();
-    setInterval(updateClock, 1000); 
-    
-    clearWeatherUI(true); 
-    
-    // Set a default city and run the initial search
-    searchCityInput.value = 'Agra, India';
-    handleSearchSubmit();
-}
+    // Initial UI setup (custom CSS for glow, etc.)
+    const style = document.createElement('style');
+    style.textContent = `
+        .lucide-icon-glow {
+            filter: drop-shadow(0 0 5px #00eaff) drop-shadow(0 0 10px #00eaff);
+        }
+        .detail-metric {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: rgba(5, 10, 15, 0.5); 
+            border: 1px solid rgba(0, 255, 255, 0.1); 
+            transition: all 0.3s ease;
+        }
+        .detail-metric:hover {
+            background-color: rgba(0, 40, 60, 0.7);
+            border-color: #00eaff;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            color: #ccc;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .nav-item:hover {
+            color: #fff;
+            background-color: rgba(0, 255, 255, 0.1);
+        }
+        .active-nav-item {
+            color: #00eaff;
+            background-color: rgba(0, 255, 255, 0.2);
+            font-weight: bold;
+        }
+        /* Fix for Leaflet dark theme */
+        #weatherMap {
+            filter: invert(90%) hue-rotate(180deg);
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Load default city weather
+    fetchAllWeatherData(DEFAULT_CITY);
+};
