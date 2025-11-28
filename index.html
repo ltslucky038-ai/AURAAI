@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
     <title>AURORA FORECAST</title>
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="styles.css">
-
     <script>
         tailwind.config = {
             theme: {
@@ -26,46 +24,36 @@
     </script>
 </head>
 <body class="bg-aurora-dark text-white font-sans min-h-screen">
-
     <div id="appContainer" class="p-0 sm:p-0 lg:p-0 app-container">
-        
         <div class="flex h-full">
-            
             <aside class="w-16 lg:w-48 p-4 border-r border-aurora-frame/30 flex flex-col justify-start space-y-4">
                 <div class="logo mb-8 mt-2 text-center">
                     <i data-lucide="cloud-lightning" class="text-aurora-blue w-8 h-8 mx-auto lucide-icon-glow"></i>
                     <p class="hidden lg:block text-xs font-bold text-aurora-blue mt-1">AURORA</p>
                 </div>
-
                 <button class="nav-item active-nav-item" data-section="TODAY">
                     <i data-lucide="calendar-check" class="w-5 h-5"></i>
                     <span class="hidden lg:block">TODAY</span>
                 </button>
-                
                 <button id="hourlyTabButton" class="nav-item" data-section="HOURLY">
                     <i data-lucide="clock" class="w-5 h-5"></i>
                     <span class="hidden lg:block">HOURLY</span>
                 </button>
-                
                 <button id="dailyTabButton" class="nav-item" data-section="WEEKLY">
                     <i data-lucide="calendar" class="w-5 h-5"></i>
                     <span class="hidden lg:block">WEEKLY</span>
                 </button>
-                
                 <button id="unitToggle" class="nav-item mt-auto"> 
                     <i data-lucide="thermometer" class="w-5 h-5"></i>
                     <span class="hidden lg:block">Switch to °F</span>
                 </button>
             </aside>
-
             <main class="flex-grow p-4 lg:p-8 overflow-y-auto relative">
                 <header class="flex justify-between items-center mb-6 sticky top-0 bg-aurora-dark/80 backdrop-blur-sm z-10 py-2 -mt-2">
-                    
                     <div class="flex flex-col">
                         <span id="currentDate" class="text-sm text-gray-400">Loading Date...</span>
                         <span id="currentTime" class="text-xl font-bold text-white">Loading Time...</span>
                     </div>
-
                     <div class="flex items-center space-x-4 ml-4">
                         <div class="relative flex w-full max-w-lg p-2 rounded-xl border border-aurora-frame/50 bg-aurora-dark/50">
                             <input id="searchCityInput" type="text" placeholder="Search city for weather..." 
@@ -77,16 +65,11 @@
                         <span id="errorMsg" class="hidden text-sm px-2 py-1 rounded text-red-400"></span>
                     </div>
                 </header>
-                
                 <div id="weatherContent">
-                    
                     <h2 class="text-2xl font-bold mb-6 text-aurora-blue">Weather for <span id="cityName">New York, US</span></h2>
-                    
                     <div id="todayDetailsSection">
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6"> 
-                            
                             <div class="lg:col-span-2 space-y-6">
-                                
                                 <section class="p-6 rounded-xl border border-aurora-frame/50 flex flex-col sm:flex-row items-center justify-between bg-aurora-dark/50 shadow-lg main-weather-card">
                                     <div class="flex items-center space-x-6">
                                         <div id="weatherIcon" class="weather-icon text-7xl text-aurora-blue icon-large">
@@ -103,7 +86,6 @@
                                         <p class="text-sm text-gray-400 mt-2">UV Index: <span id="uvIndex">3</span> (<span id="uvAdvice">Moderate</span>)</p>
                                     </div>
                                 </section>
-                                
                                 <h3 class="text-xl font-semibold mt-6 mb-4 text-aurora-blue">Key Metrics</h3>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="detail-metric">
@@ -124,30 +106,24 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="lg:col-span-1 space-y-6">
-                                
+                            <div class="lg:col-span-1 space-y-6"> 
                                 <div class="p-0 bg-aurora-dark/50 rounded-xl border border-aurora-frame/20 map-card">
                                     <h3 class="text-lg font-semibold p-3 border-b border-aurora-frame/20">Location Map</h3>
                                     <div id="weatherMap" style="height: 250px; width: 100%; border-radius: 0 0 0.75rem 0.75rem;"></div>
                                 </div>
-
                                 <div class="p-3 bg-aurora-dark/50 rounded-xl border border-aurora-frame/20 chart-card">
                                     <h3 class="text-lg font-semibold mb-3">AQI Trend (Mock)</h3>
                                     <div style="height: 180px;"><canvas id="aqiChart"></canvas></div>
                                 </div>
-                                
                             </div>
                         </div>
                     </div> 
-                    
                     <div id="hourlyForecastSection">
                         <h3 class="text-xl font-semibold mt-8 mb-4 text-aurora-blue">Hourly Forecast (Next 5 Hours)</h3>
                         <div id="hourlyForecastContainer" class="hourly-forecast-container flex space-x-4 pb-3 overflow-x-auto">
                             <p class="text-gray-500 text-center w-full">Data not available yet.</p>
                         </div>
                     </div>
-                    
                     <div id="weeklyForecastSection">
                         <h3 class="text-xl font-semibold mt-8 mb-4 text-aurora-blue">5-Day Forecast</h3>
                         <div id="dailyForecastContainer" class="daily-forecast-container flex space-x-4 pb-3 overflow-x-auto">
@@ -155,19 +131,14 @@
                         </div>
                     </div>
                 </div> 
-                
             </main>
         </div>
-        
     </div>
-    
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <script>
         lucide.createIcons();
     </script>
-    
     <script src="script.js"></script> 
 </body>
 </html>
