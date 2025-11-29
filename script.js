@@ -495,3 +495,4 @@ window.onload = () => {
     // Load default city weather
     fetchAllWeatherData(DEFAULT_CITY);
 };
+
